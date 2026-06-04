@@ -41,18 +41,33 @@
         ];
       };
 
-      # 2. Das Razer Blade (Vorbereitung für später)
-      # razerblade = nixpkgs.lib.nixosSystem {
-      #   system = "x86_64-linux";
-      #   specialArgs = { inherit inputs; };
-      #   modules = [
-      #     nixos-hardware.nixosModules.common-pc-laptop
-      #     nixos-hardware.nixosModules.common-cpu-intel
-      #     ./hosts/razerblade/hardware-configuration.nix
-      #     ./hosts/razerblade/configuration.nix
-      #     ./modules/common.nix
-      #   ];
-      # };
+      # 2. Das Razer Blade 13 (Late 2019)
+      razerblade = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          # Generische Hardware-Profile
+          nixos-hardware.nixosModules.common-pc-laptop
+          nixos-hardware.nixosModules.common-cpu-intel
+          # Falls das Modell eine dedizierte Nvidia-GPU (z.B. GTX 1650 Max-Q) nutzt, das hier ergänzen:
+          nixos-hardware.nixosModules.common-gpu-nvidia 
+
+          # Lokale Host-Dateien
+          ./hosts/razerblade/hardware-configuration.nix
+          ./hosts/razerblade/configuration.nix
+
+          # Deine gemeinsame Basis (Niri, Tools, etc.)
+          ./modules/common.nix
+
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.roljon = import ./modules/home.nix;
+          }
+        ];
+      };
+
     };
   };
 }

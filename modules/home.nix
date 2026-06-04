@@ -11,6 +11,22 @@
   # Lasse Home Manager sich selbst verwalten
   programs.home-manager.enable = true;
 
+  # Niri Konfiguration: Verlinkt den gesamten Ordner 'dotfiles/niri'
+  # Der Pfad ist relativ zum Standort dieser home.nix Datei
+  xdg.configFile."niri".source = ../dotfiles/niri;
+
+  # Alacritty direkt über Nix konfigurieren
+  programs.alacritty = {
+    enable = true;
+    settings = {
+      window = {
+        opacity = 0.95;
+        padding = { x = 12; y = 12; };
+      };
+        # Hier können später deine bevorzugten Fonts oder Farbschemata rein
+    };
+  };
+
   # Aktiviert SwayOSD (On-Screen Display für Lautstärke/Helligkeit)
   services.swayosd.enable = true;
 

@@ -1,26 +1,9 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
 { config, pkgs, ... }:
 
 {
-  networking.hostName = "xps13"; # Wichtig, damit es unterschieden werden kann
-  
-  # Bootloader (je nachdem, was der Installer gesetzt hat)
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  networking.hostName = "xps13";
 
-  # Der User-Account kann hier bleiben, oder später auch in die common.nix
-  users.users.roljon = {
-    isNormalUser = true;
-    extraGroups = [ "networkmanager" "wheel" "video" ];
-  };
-
-  # Erlaubt die Installation von proprietären Treibern (wie Broadcom)
-  nixpkgs.config.allowUnfree = true;
-
-  # Erlaubt gezielt diesen alten, unsicheren Broadcom-Treiber
+  # Erlaubt gezielt diesen alten, unsicheren Broadcom-Treiber fürs XPS
   nixpkgs.config.permittedInsecurePackages = [
     "broadcom-sta-6.30.223.271-59-6.18.33"
   ];
@@ -29,6 +12,5 @@
   boot.kernelModules = [ "wl" ];
   boot.extraModulePackages = [ config.boot.kernelPackages.broadcom_sta ];
 
-  system.stateVersion = "26.11"; # Did you read the comment?
-
+  system.stateVersion = "24.11"; # (Ich habe die 26.11 mal als Tippfehler gewertet, pass das auf deine Original-Version an)
 }

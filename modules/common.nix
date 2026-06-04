@@ -1,6 +1,19 @@
 { config, pkgs, ... }:
 
 {
+  # --- Bootloader ---
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  # --- Globale Paket-Einstellungen ---
+  nixpkgs.config.allowUnfree = true;
+
+  # --- Dein Benutzer-Account ---
+  users.users.roljon = {
+    isNormalUser = true;
+    extraGroups = [ "networkmanager" "wheel" "video" ];
+  };
+
   # Deutsches Tastaturlayout in der TTY-Konsole
   console.keyMap = "de";
   
@@ -19,7 +32,7 @@
 
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
-    alacritty
+#    alacritty
     fuzzel
     git
     fastfetch
@@ -28,6 +41,8 @@
     brightnessctl
     nemo
     yazi
+    swaylock-effects
+    vscode
   ];
 
   environment.sessionVariables = {
