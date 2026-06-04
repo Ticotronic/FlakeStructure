@@ -10,9 +10,10 @@
       # Das verhindert, dass Home Manager eine zweite, eigene Version von nixpkgs herunterlädt
       inputs.nixpkgs.follows = "nixpkgs"; 
     };
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-hardware, home-manager, sops-nix, ... }@inputs: {
     nixosConfigurations = {
       
       # 1. Der Dell XPS 13
@@ -64,6 +65,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.users.roljon = import ./modules/home.nix;
+            home-manager.sharedModules = [ sops-nix.homeManagerModules.sops ];
           }
         ];
       };

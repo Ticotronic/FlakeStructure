@@ -30,6 +30,46 @@
   # Aktiviert SwayOSD (On-Screen Display für Lautstärke/Helligkeit)
   services.swayosd.enable = true;
 
+  ### --  Thunderbird + Profil anlegen mit Passwort -- ##
+  programs.thunderbird = {
+    enable = true;
+    profiles.default = {
+      isDefault = true;
+    };
+  };
+
+  sops.age.sshKeyPaths = [ "/home/roljon/.ssh/id_ed25519" ];  
+  sops.defaultSopsFile = ../secrets/mail.yaml;
+  sops.secrets."gmx_rj" = {};
+
+  accounts.email.accounts = {
+    "r.jongebloed@gmx.de" = {
+      primary = true; # Setze dies auf true, falls GMX dein Hauptkonto sein soll
+      realName = "Rolf Jongebloed";
+      address = "r.jongebloed@gmx.de"; # Oder @gmx.net
+      userName = "r.jongebloed@gmx.de"; # Bei GMX ist die volle Adresse der Benutzername
+
+      # Die offiziellen GMX Server-Einstellungen
+      imap = {
+        host = "imap.gmx.net";
+        port = 993;
+        tls.enable = true;
+      };
+      smtp = {
+        host = "mail.gmx.net";
+        port = 465;
+        tls.enable = true;
+      };
+
+      thunderbird.enable = true;
+
+      # Das Passwort aus der sops-RAM-Disk auslesen
+      passwordCommand = "cat ${config.sops.secrets."gmx_rj".path}";
+    };
+  };
+
+  ### -- ###
+
   # --- Waybar Konfiguration ---
   programs.waybar = {
     enable = true;
