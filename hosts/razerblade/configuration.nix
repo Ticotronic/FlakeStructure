@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib,  ... }:
 
 {
   networking.hostName = "razerblade";
@@ -9,37 +9,58 @@
  #   users = [ "roljon" ];
  # };
 
-  # Nvidia-Treiber aktivieren
-  services.xserver.videoDrivers = [ "nvidia" ];
+# --- BASIS-MODUS: GPU KOMPLETT AUS ---
+# Wir definieren die Bus-IDs global, damit NixOS nie wieder danach fragt
+hardware.nvidia.prime.intelBusId = "PCI:0:2:0"; 
+hardware.nvidia.prime.nvidiaBusId = "PCI:87:0:0";
 
-  hardware.nvidia = {
-    # Modesetting wird für Wayland (Niri/Sway) zwingend benötigt
-    modesetting.enable = true;
-    
-    # Hier beheben wir den Fehler: Wir nutzen den proprietären Treiber (false) statt des open-source Treibers
-    open = false;
-    
-    # Das Nvidia-Settings-Menü aktivieren
-    nvidiaSettings = true;
-    
-    # Den stabilen Treiber-Zweig auswählen
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+# Wir blockieren das Laden jeglicher NVIDIA-Treiber
+boot.blacklistedKernelModules = [ "nouveau" "nvidia" "nvidia_drm" "nvidia_modeset" ];
 
-    # Diese beiden Zeilen sind der Gamechanger für den Akku:
-    powerManagement.enable = true;
-    powerManagement.finegrained = true;
+hardware.nvidia.open = false;
 
-    prime = {
-      offload = {
-        enable = true;
-        enableOffloadCmd = true; # Gibt dir den Befehl `nvidia-offload` für die Konsole
+# --- SPECIALISATION: HYBRIDER MODUS ---
+specialisation = {
+  hybrid.configuration = {
+    # Dieser Name taucht im Bootmenü auf
+    system.nixos.tags = [ "hybrid" ];
+
+    # Blacklist gewaltsam aufheben
+    boot.blacklistedKernelModules = lib.mkForce [ "nouveau" ];
+
+    # Nvidia-Treiber aktivieren
+    services.xserver.videoDrivers = [ "nvidia" ];
+
+    hardware.nvidia = {
+      # Modesetting wird für Wayland (Niri/Sway) zwingend benötigt
+      modesetting.enable = true;
+      
+      # Hier beheben wir den Fehler: Wir nutzen den proprietären Treiber (false) statt des open-source Treibers
+      open = false;
+      
+      # Das Nvidia-Settings-Menü aktivieren
+      nvidiaSettings = true;
+      
+      # Den stabilen Treiber-Zweig auswählen
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+      # Diese beiden Zeilen sind der Gamechanger für den Akku:
+      powerManagement.enable = true;
+      powerManagement.finegrained = false;
+
+      prime = {
+        offload = {
+          enable = true;
+          enableOffloadCmd = true; # Gibt dir den Befehl `nvidia-offload` für die Konsole
+        };
+
+        # Trage hier DEINE ermittelten IDs ein:
+        #intelBusId = "PCI:0:2:0"; 
+        #nvidiaBusId = "PCI:87:0:0"; 
       };
-
-      # Trage hier DEINE ermittelten IDs ein:
-      intelBusId = "PCI:0:2:0"; 
-      nvidiaBusId = "PCI:87:0:0"; 
     };
   };
+};
 
   # --- Energieverwaltung ---
   
