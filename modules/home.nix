@@ -133,7 +133,12 @@
   # Quickshell Paket installieren
   home.packages = with pkgs; [
     quickshell
+    wirelesstools
+    networkmanager
+
+    (pkgs.writeShellScriptBin "qs-stats" (builtins.readFile ./qs-stats.sh))
   ];
 
   xdg.configFile."quickshell".source = ../dotfiles/quickshell;
+
 }

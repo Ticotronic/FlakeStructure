@@ -73,4 +73,23 @@
 
   # Erlaubt die Nutzung der modernen Nix-Befehle und Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # ==========================================
+  # Systemweite Schriftarten & Icons
+  # ==========================================
+  fonts.packages = with pkgs; [
+    # Die reinen Symbole (sehr wichtig als Fallback für den Browser und Wayland)
+    nerd-fonts.symbols-only
+    
+    # Eine fantastische Programmier-Schriftart inklusive Icons (optional, aber empfohlen)
+    nerd-fonts.fira-code
+    nerd-fonts.jetbrains-mono
+  ];
+
+  # Sagt dem System, dass es diese Fonts als Standard-Fallbacks für fehlende Zeichen nutzen soll
+  fonts.fontconfig = {
+    defaultFonts = {
+      monospace = [ "FiraCode Nerd Font" "JetBrainsMono Nerd Font" ];
+    };
+  };
 }
