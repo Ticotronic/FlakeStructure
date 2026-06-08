@@ -129,4 +129,11 @@
       }
     '';
   };
+
+  # Quickshell Paket installieren
+  home.packages = with pkgs; [
+    quickshell
+  ];
+
+  xdg.configFile."quickshell".source = ../dotfiles/quickshell;
 }
