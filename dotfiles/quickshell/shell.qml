@@ -1,7 +1,11 @@
+//@ pragma UseQApplication
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.SystemTray
+import Quickshell.Widgets
+import QtQuick.Controls
 
 ShellRoot {
     // ==========================================
@@ -167,11 +171,66 @@ ShellRoot {
                     Text { color: "#cdd6f4"; font.pixelSize: 14; font.family: "Symbols Nerd Font"; text: "󰘚 " + cpuStatus }
                 }
 
-                Rectangle {
-                    color: "#313244"
+                Row {
+                    spacing: 4
                     Layout.fillHeight: true
-                    width: 80; radius: 4
-                    Text { color: "#cdd6f4"; text: "[Tray]"; anchors.centerIn: parent }
+
+                    Repeater {
+                        model: SystemTray.items
+
+                        Item {
+                            id: trayItem
+                            required property var modelData
+
+                            width: 24
+                            height: 24
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            // Icon des Tray-Items
+                            IconImage {
+                                id: trayIcon
+                                anchors.fill: parent
+                                source: trayItem.modelData.icon
+                            }
+
+                            // Linksklick: Aktivieren (z.B. Fenster öffnen)
+                            // Rechtsklick: Kontextmenü öffnen
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
+
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        trayMenuAnchor.open()
+                                    } else {
+                                        trayItem.modelData.activate()
+                                    }
+                                }
+
+                                // Tooltip bei Hover
+                                ToolTip.visible: containsMouse
+                                ToolTip.text: trayItem.modelData.tooltipTitle !== ""
+                                    ? trayItem.modelData.tooltipTitle
+                                    : trayItem.modelData.title
+                                ToolTip.delay: 500
+                                hoverEnabled: true
+                            }
+
+                            // Kontextmenü
+                            QsMenuAnchor {
+                                id: trayMenuAnchor
+                                menu: trayItem.modelData.menu
+                                anchor.window: topBar
+                                anchor.rect: Qt.rect(
+                                    trayItem.mapToItem(null, 0, 0).x,
+                                    topBar.height,
+                                    trayItem.width,
+                                    0
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
