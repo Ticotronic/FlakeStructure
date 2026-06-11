@@ -67,7 +67,9 @@ PanelWindow {
 
                     if (event.WorkspacesChanged) {
                         // Vollständiges Update (z.B. beim Start oder wenn Workspaces erstellt/gelöscht werden)
-                        workspaceList = event.WorkspacesChanged.workspaces;
+                            var sorted = event.WorkspacesChanged.workspaces.slice();
+                            sorted.sort(function(a, b) { return a.idx - b.idx; });
+                            workspaceList = sorted;
 
                     } else if (event.WorkspaceActivated) {
                         let activatedId = event.WorkspaceActivated.id;
@@ -106,8 +108,9 @@ PanelWindow {
                     let initialWorkspaces = JSON.parse(data);
                     // Der einfache "workspaces" Befehl gibt direkt ein Array zurück
                     if (Array.isArray(initialWorkspaces)) {
-                        workspaceList = initialWorkspaces;
-                        initialLoaded = true; // Markiere, dass die initialen Daten geladen wurden
+                        var sorted = initialWorkspaces.slice();
+                        sorted.sort(function(a, b) { return a.idx - b.idx; });
+                        workspaceList = sorted;
                     }
                 } catch (e) {
                     // Ignoriere unvollständige Daten
@@ -166,7 +169,7 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         // Erlaubt das Klicken auf die Bar, um den Workspace zu wechseln!
                         onClicked: {
-                            Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(modelData.id)])
+                            Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(modelData.idx)])
                         }
                     }
                 }
