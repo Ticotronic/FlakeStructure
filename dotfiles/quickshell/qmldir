@@ -5,3 +5,4 @@ Workspaces 1.0 Workspaces.qml
 StatusIcons 1.0 StatusIcons.qml
 TrayItem 1.0 TrayItem.qml
 TrayArea 1.0 TrayArea.qml
+SessionSlots 1.0 SessionSlots.qml
