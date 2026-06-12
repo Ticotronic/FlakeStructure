@@ -288,4 +288,16 @@ binds {
     // Powers off the monitors. To turn them back on, do any input like
     // moving the mouse or pressing any other key.
     Mod+Shift+P { power-off-monitors; }
+
+
+    // shortcuts um die selbst geschriebenen SessioSlots Funktion per Shortcut zu nutzen
+    // Slots wiederherstellen
+    Mod+F1 { spawn "qs" "ipc" "call" "sessionSlots" "restore" "0"; }
+    Mod+F2 { spawn "qs" "ipc" "call" "sessionSlots" "restore" "1"; }
+    Mod+F3 { spawn "qs" "ipc" "call" "sessionSlots" "restore" "2"; }
+
+    // Slots speichern
+    Mod+Shift+F1 { spawn "qs" "ipc" "call" "sessionSlots" "capture" "0"; }
+    Mod+Shift+F2 { spawn "qs" "ipc" "call" "sessionSlots" "capture" "1"; }
+    Mod+Shift+F3 { spawn "qs" "ipc" "call" "sessionSlots" "capture" "2"; }
 }

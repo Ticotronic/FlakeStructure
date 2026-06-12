@@ -5,13 +5,65 @@ import Quickshell.Io
 import Quickshell.Services.SystemTray
 import "."
 
-ShellRoot {
+ShellRoot {       
+    property var sessionSlots: [null, null, null] // 3 SessionSlots, initial leer
     property var windowList: []
     property var workspaceList: []
     property string wlanStatus: "Lade..."
     property string batStatus: "Lade..."
     property string ramStatus: "Lade..."
     property string cpuStatus: "Lade..."
+
+    // ########################################
+    // Funktionen zum Verwalten der Session Slots
+    // ########################################
+    // Snapshot des aktuellen Zustands erstellen
+    function captureSnapshot() {
+        var snapshot = [];
+        for (var i = 0; i < workspaceList.length; i++) {
+            var ws = workspaceList[i];
+            if (ws.is_active) {
+                snapshot.push({
+                    output:    ws.output,
+                    wsIdx:     ws.idx,
+                    windowId:  ws.active_window_id
+                });
+            }
+        }
+        return snapshot;
+    }
+
+    // Snapshot wiederherstellen
+    function restoreSnapshot(snapshot) {
+        for (var i = 0; i < snapshot.length; i++) {
+            var entry = snapshot[i];
+            Quickshell.execDetached([
+                "niri", "msg", "action", "focus-workspace", String(entry.wsIdx)
+            ]);
+            if (entry.windowId !== null) {
+                Quickshell.execDetached([
+                    "niri", "msg", "action", "focus-window",
+                    "--id", String(entry.windowId)
+                ]);
+            }
+        }
+    }
+
+    // Damit Niri die Slots auch von anderen Komponenten aus ansprechen kann (z.B. Shortcuts), müssen capture/restore als IPC-Handler-Funktionen verfügbar gemacht werden
+    IpcHandler {
+        target: "sessionSlots"
+
+        function restore(index: int): void {
+            restoreSnapshot(sessionSlots[index]);
+        }
+
+        function capture(index: int): void {
+            var updated = [sessionSlots[0], sessionSlots[1], sessionSlots[2]];
+            updated[index] = captureSnapshot();
+            sessionSlots = updated;
+        }
+    }
+    // ########################################
 
     Process {
         command: ["qs-stats"]
