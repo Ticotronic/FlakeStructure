@@ -4,7 +4,7 @@
 // See the binds section below for more spawn examples.
 
 // This line starts waybar, a commonly used bar for Wayland compositors.
-spawn-at-startup "waybar"
+spawn-at-startup "quickshell"
 
 // start networkmanager applet at start up
 spawn-at-startup "nm-applet"
