@@ -58,6 +58,25 @@ ShellRoot {
                             });
                         }
                         workspaceList = updated;
+                    } 
+                    if (event.WorkspaceActiveWindowChanged) {
+                        let wsId  = event.WorkspaceActiveWindowChanged.workspace_id;
+                        let winId = event.WorkspaceActiveWindowChanged.active_window_id;
+                        var updated = [];
+                        for (var i = 0; i < workspaceList.length; i++) {
+                            var ws = workspaceList[i];
+                            updated.push({
+                                id:               ws.id,
+                                idx:              ws.idx,
+                                name:             ws.name,
+                                output:           ws.output,
+                                is_urgent:        ws.is_urgent,
+                                is_active:        ws.is_active,
+                                is_focused:       ws.is_focused,
+                                active_window_id: ws.id === wsId ? winId : ws.active_window_id
+                            });
+                        }
+                        workspaceList = updated;
                     }
                 } catch (e) {}
             }

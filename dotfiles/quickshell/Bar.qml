@@ -40,6 +40,18 @@ PanelWindow {
             workspaces: filteredWorkspaces
         }
 
+        // Trennlinie
+        Rectangle {
+            width: 1; Layout.fillHeight: true
+            color: "#313244"
+            Layout.topMargin: 4
+            Layout.bottomMargin: 4
+        }
+
+        SessionSlots {
+            Layout.fillHeight: true
+        }
+
         Item { Layout.fillWidth: true }
 
         StatusIcons {}
