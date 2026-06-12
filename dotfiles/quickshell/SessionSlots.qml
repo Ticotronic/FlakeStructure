@@ -41,6 +41,22 @@ Row {
         }
     }
 
+    // Fenstertitel anhand der ID nachschlagen
+    function windowTitle(windowId) {
+        if (windowId === null) return null;
+        for (var i = 0; i < windowList.length; i++) {
+            if (windowList[i].id === windowId) {
+                // Titel kürzen falls zu lang
+                var title = windowList[i].title;
+                if (title.length > 40) {
+                    title = title.substring(0, 37) + "...";
+                }
+                return title + " (" + windowList[i].app_id + ")";
+            }
+        }
+        return "Fenster #" + windowId;
+    }
+
     Repeater {
         model: 3
 
@@ -84,23 +100,51 @@ Row {
                 }
             }
 
-            ToolTip {
+            PopupWindow {
+                id: slotTooltip
                 visible: slotMouseArea.containsMouse
-                delay: 500
 
-                text: {
-                    if (slots[index] === null) {
-                        return "Rechtsklick zum Speichern";
+                // Position: unterhalb des Buttons
+                anchor.window: topBar
+                anchor.rect: Qt.rect(
+                    slotButton.mapToItem(null, 0, 0).x,
+                    topBar.height,
+                    slotButton.width,
+                    0
+                )
+                anchor.edges: Edges.Top
+
+                width: tooltipText.implicitWidth + 16
+                height: tooltipText.implicitHeight + 12
+                color: "transparent"
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#313244"
+                    radius: 4
+                    border.color: "#45475a"
+                    border.width: 1
+
+                    Text {
+                        id: tooltipText
+                        anchors.centerIn: parent
+                        color: "#cdd6f4"
+                        font.pixelSize: 12
+                        text: {
+                            if (slots[index] === null) {
+                                return "Rechtsklick zum Speichern";
+                            }
+                            var lines = ["Slot " + (index + 1) + ":"];
+                            for (var i = 0; i < slots[index].length; i++) {
+                                var entry = slots[index][i];
+                                var winInfo = entry.windowId !== null
+                                    ? "\n    " + windowTitle(entry.windowId)
+                                    : " (kein Fenster)";
+                                lines.push(entry.output + " → Workspace " + entry.wsIdx + winInfo);
+                            }
+                            return lines.join("\n");
+                        }
                     }
-                    var lines = ["Slot " + (index + 1) + ":"];
-                    for (var i = 0; i < slots[index].length; i++) {
-                        var entry = slots[index][i];
-                        var winInfo = entry.windowId !== null
-                            ? " (Fenster #" + entry.windowId + ")"
-                            : " (kein Fenster)";
-                        lines.push(entry.output + " → Workspace " + entry.wsIdx + winInfo);
-                    }
-                    return lines.join("\n");
                 }
             }
         }

@@ -6,6 +6,7 @@ import Quickshell.Services.SystemTray
 import "."
 
 ShellRoot {
+    property var windowList: []
     property var workspaceList: []
     property string wlanStatus: "Lade..."
     property string batStatus: "Lade..."
@@ -77,6 +78,23 @@ ShellRoot {
                             });
                         }
                         workspaceList = updated;
+                    } else if (event.WindowsChanged) {
+                        windowList = event.WindowsChanged.windows;
+
+                    } else if (event.WindowFocusChanged) {
+                        let focusedId = event.WindowFocusChanged.id;
+                        var updatedWindows = [];
+                        for (var j = 0; j < windowList.length; j++) {
+                            var win = windowList[j];
+                            updatedWindows.push({
+                                id:          win.id,
+                                title:       win.title,
+                                app_id:      win.app_id,
+                                workspace_id: win.workspace_id,
+                                is_focused:  win.id === focusedId
+                            });
+                        }
+                        windowList = updatedWindows;
                     }
                 } catch (e) {}
             }
@@ -94,6 +112,21 @@ ShellRoot {
                         var sorted = initial.slice();
                         sorted.sort(function(a, b) { return a.idx - b.idx; });
                         workspaceList = sorted;
+                    }
+                } catch (e) {}
+            }
+        }
+    }
+
+    Process {
+        command: ["niri", "msg", "-j", "windows"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    let initial = JSON.parse(data);
+                    if (Array.isArray(initial)) {
+                        windowList = initial;
                     }
                 } catch (e) {}
             }
