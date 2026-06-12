@@ -114,8 +114,8 @@ Row {
                 )
                 anchor.edges: Edges.Top
 
-                width: tooltipText.implicitWidth + 16
-                height: tooltipText.implicitHeight + 12
+                implicitWidth: tooltipText.implicitWidth + 16
+                implicitHeight: tooltipText.implicitHeight + 12
                 color: "transparent"
 
                 Rectangle {

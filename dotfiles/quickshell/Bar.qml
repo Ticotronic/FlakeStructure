@@ -5,7 +5,7 @@ import Quickshell
 PanelWindow {
     id: topBar
     color: "#1e1e2e"
-    height: 32
+    implicitHeight: 32
     anchors { top: true; left: true; right: true }
 
     property var filteredWorkspaces: {
