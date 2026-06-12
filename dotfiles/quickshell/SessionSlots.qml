@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import QtQuick.Controls
 
 Row {
     spacing: 6
@@ -63,9 +64,11 @@ Row {
             }
 
             MouseArea {
+                id: slotMouseArea
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
 
                 // Linksklick: Slot wiederherstellen (wenn belegt)
                 // Rechtsklick: aktuellen Stand speichern
@@ -78,6 +81,26 @@ Row {
                     } else if (slots[index] !== null) {
                         restoreSnapshot(slots[index]);
                     }
+                }
+            }
+
+            ToolTip {
+                visible: slotMouseArea.containsMouse
+                delay: 500
+
+                text: {
+                    if (slots[index] === null) {
+                        return "Rechtsklick zum Speichern";
+                    }
+                    var lines = ["Slot " + (index + 1) + ":"];
+                    for (var i = 0; i < slots[index].length; i++) {
+                        var entry = slots[index][i];
+                        var winInfo = entry.windowId !== null
+                            ? " (Fenster #" + entry.windowId + ")"
+                            : " (kein Fenster)";
+                        lines.push(entry.output + " → Workspace " + entry.wsIdx + winInfo);
+                    }
+                    return lines.join("\n");
                 }
             }
         }
