@@ -43,33 +43,38 @@
     yazi
     swaylock-effects
     vscode
+    catppuccin-sddm
+    catppuccin-cursors.macchiatoDark
   ];
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
   };
 
-  # Grafischen Login-Bildschirm (Tuigreet) aktivieren
-  services.greetd = {
+  # ==========================================
+  # Display Manager: SDDM (x11)
+  # ==========================================
+  services.xserver.enable = true;
+  services.displayManager.sddm = {
     enable = true;
+    wayland.enable = false;
+
+    # KWin ist auch für Intel deutlich robuster als Weston
+    #wayland.compositor = "kwin";
+    
+    # Der exakte Name des Theme-Ordners
+    theme = "catppuccin-macchiato";
     settings = {
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd niri-session";
-        user = "greeter";
+      # Hier kannst du weitere SDDM-Einstellungen anpassen, z.B. die Sprache
+      # language = "de";
+      Theme = {
+        # Hier kannst du die Hintergrundfarbe anpassen, falls das Theme das unterstützt
+        # backgroundColor = "#1e1e2e";
+        CursorTheme = "catppuccin-macchiato-dark-cursors";
       };
     };
   };
 
-  # Sicherheits-Fix, damit tuigreet reibungslos funktioniert
-  systemd.services.greetd.serviceConfig = {
-    Type = "idle";
-    StandardInput = "tty";
-    StandardOutput = "tty";
-    StandardError = "journal";
-    TTYReset = true;
-    TTYVHangup = true;
-    TTYVTDisallocate = true;
-  };
 
   # Erlaubt die Nutzung der modernen Nix-Befehle und Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
