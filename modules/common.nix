@@ -47,6 +47,51 @@
     catppuccin-cursors.macchiatoDark
   ];
 
+  # ==========================================
+  # WireGuard VPN (wg-quick)
+  # ==========================================
+  networking.wg-quick.interfaces = {
+    # Der Name des Tunnels (meistens wg0)
+    wg0 = {
+      # Die IP-Adresse, die dein Razer Blade innerhalb des VPNs bekommt
+      address = [ "192.168.0.202/32" ];
+      
+      # Optional: Ein DNS-Server für den Tunnel
+      #dns = [ "10.0.0.1" ];
+
+      # WICHTIG: Den privaten Schlüssel schreiben wir niemals direkt in den Nix-Code!
+      # Erstelle diese Datei später manuell auf dem System und lege den Key dort ab.
+      privateKeyFile = "/root/wireguard-keys/private";
+
+      peers = [
+        {
+          # Der öffentliche Schlüssel deines WireGuard-Servers
+          publicKey = "nWWWwzWV+Y1gaiIwmonQ8pYVu2WsPG2upp0tIuSU6UY=";
+          
+          # Die öffentliche IP oder Domain deines Servers und der Port
+          endpoint = "ticotronic.ddnss.org:53913";
+          
+          # Welche IPs sollen durch den Tunnel geleitet werden?
+          # "0.0.0.0/0" = Alles (Standard-VPN)do
+          # "192.168.178.0/24" = Split-Tunnel (Nur Traffic ins Heimnetz)
+          allowedIPs = [ "0.0.0.0/0" ];
+          
+          # Hält die Verbindung bei restriktiven Firewalls/NAT aktiv
+          persistentKeepalive = 25;
+        }
+      ];
+    };
+  };
+
+  # Füge extraRules ein, damit vpn ohne passwort gestartet werden kann.
+  security.sudo.extraRules = [{
+      users = [ "roljon" ];
+      commands = [
+          { command = "/run/current-system/sw/bin/systemctl start wg-quick-wg0"; options = [ "NOPASSWD" ]; }
+          { command = "/run/current-system/sw/bin/systemctl stop wg-quick-wg0"; options = [ "NOPASSWD" ]; }
+      ];
+  }];
+
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
   };

@@ -52,6 +52,19 @@ PanelWindow {
             Layout.fillHeight: true
         }
 
+                // Trennlinie
+        Rectangle {
+            width: 1; Layout.fillHeight: true
+            color: "#313244"
+            Layout.topMargin: 4
+            Layout.bottomMargin: 4
+        }
+
+        WireguardButton {
+            Layout.fillHeight: true
+            vpnName: "wg0"  // deinen Interface-Namen anpassen
+        }
+
         Item { Layout.fillWidth: true }
 
         StatusIcons {}
