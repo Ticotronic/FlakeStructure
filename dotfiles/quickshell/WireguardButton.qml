@@ -83,10 +83,10 @@ Rectangle {
         id: vpnTooltip
         visible: vpnMouseArea.containsMouse
 
-        anchor.window: vpnButton.parent
+        anchor.window: topBar
         anchor.rect: Qt.rect(
             vpnButton.mapToItem(null, 0, 0).x,
-            32,
+            topBar.height,
             vpnButton.width,
             0
         )
