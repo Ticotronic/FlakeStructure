@@ -45,6 +45,55 @@
     vscode
     catppuccin-sddm
     catppuccin-cursors.macchiatoDark
+
+    # ==========================================
+    # Custom Build: Catnap (Manuelle Kompilierung)
+    # ==========================================
+    (pkgs.stdenv.mkDerivation {
+      pname = "catnap";
+      version = "unstable";
+
+      src = pkgs.fetchFromGitHub {
+        owner = "iinsertNameHere";
+        repo = "catnap";
+        rev = "main"; 
+        # ACHTUNG: Trage hier wieder den Hash ein, den du im vorherigen Schritt herausgefunden hast!
+        hash = "sha256-aYz+VicvB66okrbReiG4ZjqZmndV4XvKQG8G/JbkNns="; 
+      };
+
+      # 2. NEU: Der parsetoml-Quellcode (Die fehlende Abhängigkeit)
+      parsetomlSrc = pkgs.fetchFromGitHub {
+        owner = "NimParsers";
+        repo = "parsetoml";
+        rev = "master"; 
+        # HIER WIEDER DEN HASH-TRICK ANWENDEN (leer lassen für den ersten Versuch):
+        hash = "sha256-auJowvsxluHlgMK3kvdmA45PbFqReyxIIP15/t0SXTU="; 
+      };
+
+      # Werkzeuge, die zum Bauen (Kompilieren) benötigt werden
+      nativeBuildInputs = [ pkgs.nim ];
+      
+      # C-Bibliotheken, die Catnap zur Laufzeit braucht (für Regex und Fetching)
+      buildInputs = with pkgs; [ pcre openssl ];
+
+      # Wir übergeben den Pfad der heruntergeladenen Bibliothek an den Compiler
+      buildPhase = ''
+        export HOME=$TMPDIR
+
+        # NixOS-Hack: Wir suchen alle Ordner mit .h-Dateien und geben sie dem C-Compiler als Include-Pfad (-I)
+        for d in $(find src -name "*.h" -exec dirname {} \; | sort -u); do
+          export NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -I$PWD/$d"
+        done
+        
+        nim c -d:release --path:$parsetomlSrc/src src/catnap.nim
+      '';
+
+      # Wir schieben das fertig kompilierte Programm in den ausführbaren Pfad
+      installPhase = ''
+        mkdir -p $out/bin
+        cp src/catnap $out/bin/
+      '';
+    })
   ];
 
   environment.sessionVariables = {
