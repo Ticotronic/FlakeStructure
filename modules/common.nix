@@ -54,21 +54,21 @@
     # Der Name des Tunnels (meistens wg0)
     wg0 = {
       # Die IP-Adresse, die dein Razer Blade innerhalb des VPNs bekommt
-      # address = [ "192.168.0.202/32" ];
-      address = [ "192.168.0.201/32" ];
-      
+      address = [ "192.168.0.203/24" ];
+            
       # Optional: Ein DNS-Server für den Tunnel
-      # dns = [ "192.168.0.1" ];
+      dns = [ "192.168.0.1" ];
 
       # WICHTIG: Den privaten Schlüssel schreiben wir niemals direkt in den Nix-Code!
       # Erstelle diese Datei später manuell auf dem System und lege den Key dort ab.
-      privateKeyFile = "/root/wireguard-keys/private2";
+      privateKeyFile = "/root/wireguard-keys/private";
 
       peers = [
         {
           # Der öffentliche Schlüssel deines WireGuard-Servers
-          # publicKey = "nWWWwzWV+Y1gaiIwmonQ8pYVu2WsPG2upp0tIuSU6UY=";
-          publicKey = "+hAKPuo4aSpZVBAMDbTM42YhjVkFnwLYjd4uaiJaZjc=";
+          publicKey = "8fRB/vfBJVyLzw6yCw/DGv6289AywysZ9Me7BJdBmSE=";
+
+          presharedKeyFile = "/root/wireguard-keys/preshared";
           
           # Die öffentliche IP oder Domain deines Servers und der Port
           endpoint = "ticotronic.ddnss.org:53913";
