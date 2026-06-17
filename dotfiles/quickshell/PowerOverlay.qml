@@ -93,27 +93,37 @@ PanelWindow {
         }
 
         RowLayout {
+            // Die Rechnung dahinter: Bei 4 Buttons mit insgesamt 80% Bildschirmbreite und 4% Spacing zwischen ihnen:
+            // verfügbare_breite = overlay.width * 0.8
+            // spacing_gesamt    = spacing * 3  (3 Lücken zwischen 4 Buttons)
+            // optionSize        = (verfügbare_breite - spacing_gesamt) / 4
             anchors.centerIn: parent
-            spacing: 24
+            spacing: overlay.width * 0.04
+
+            property real optionSize: (overlay.width * 0.8 - spacing * 3) / 4
 
             PowerOption {
                 icon: "󰐥"
                 label: "Ausschalten"
+                size: parent.optionSize
                 onClicked: PowerMenu.shutdown()
             }
             PowerOption {
                 icon: "󰜉"
                 label: "Neustarten"
+                size: parent.optionSize
                 onClicked: PowerMenu.reboot()
             }
             PowerOption {
                 icon: "󰌾"
                 label: "Sperren"
+                size: parent.optionSize
                 onClicked: PowerMenu.lock()
             }
             PowerOption {
                 icon: "󰒲"
                 label: "Suspend"
+                size: parent.optionSize
                 onClicked: PowerMenu.suspend()
             }
         }

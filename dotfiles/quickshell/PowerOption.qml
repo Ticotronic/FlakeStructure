@@ -6,15 +6,16 @@ ColumnLayout {
     id: option
     property string icon: ""
     property string label: ""
+    property real size: 96
     signal clicked()
 
-    spacing: 12
+    spacing: size * 0.12
 
     Rectangle {
         id: optionBg
-        Layout.preferredWidth: 96
-        Layout.preferredHeight: 96
-        radius: 16
+        Layout.preferredWidth: option.size
+        Layout.preferredHeight: option.size
+        radius: option.size * 0.16
         color: optionMouseArea.containsMouse 
             ? Qt.rgba(1, 1, 1, 0.18)
             : Qt.rgba(1, 1, 1, 0.10)
@@ -34,7 +35,7 @@ ColumnLayout {
             anchors.centerIn: parent
             text: option.icon
             font.family: "Symbols Nerd Font"
-            font.pixelSize: 36
+            font.pixelSize: option.size * 0.38
             color: "#ffffff"
 
             layer.enabled: true
@@ -59,7 +60,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         text: option.label
         color: "#ffffff"
-        font.pixelSize: 14
+        font.pixelSize: option.size * 0.15
 
         layer.enabled: true
         layer.effect: MultiEffect {
