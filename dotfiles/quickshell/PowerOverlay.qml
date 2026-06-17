@@ -59,6 +59,22 @@ PanelWindow {
         easing.type: Easing.InCubic
     }
 
+    Timer {
+        id: closeTimer
+        interval: blurAnimOut.duration
+        running: false
+        repeat: false
+        onTriggered: PowerMenu.hideImmediately()
+    }
+
+    Connections {
+        target: PowerMenu
+        function onCloseRequested() {
+            blurAnimOut.start();
+            closeTimer.restart();
+        }
+    }
+
     onVisibleChanged: {
         if (visible) {
             blurEffect.blur = 0.0;
