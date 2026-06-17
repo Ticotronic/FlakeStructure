@@ -73,5 +73,9 @@ PanelWindow {
             Layout.fillHeight: true
             barWindow: topBar
         }
+
+        PowerButton {
+            Layout.fillHeight: true
+        }
     }
 }
