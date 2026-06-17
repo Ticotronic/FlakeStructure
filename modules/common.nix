@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # --- Bootloader ---
@@ -29,6 +29,16 @@
 
   # NetworkManager aktivieren
   networking.networkmanager.enable = true;
+  
+  # Aktiviert die Bluetooth-Hardware und den dazugehörigen Systemd-Dienst (BlueZ)
+  hardware.bluetooth.enable = true; 
+  
+  # Optional, aber für Laptops sehr praktisch: Bluetooth startet direkt beim Booten
+  hardware.bluetooth.powerOnBoot = true; 
+
+  # Installiert ein grafisches Verwaltungstool (blueman-manager) 
+  # und stellt das Systemtray-Applet bereit
+  services.blueman.enable = true;
 
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
@@ -43,6 +53,7 @@
     yazi
     swaylock-effects
     vscode
+    vlc
     catppuccin-sddm
     catppuccin-cursors.macchiatoDark
   ];
@@ -84,6 +95,7 @@
       ];
     };
   };
+  systemd.services."wg-quick-wg0".wantedBy = lib.mkForce [ ];
 
   # Füge extraRules ein, damit vpn ohne passwort gestartet werden kann.
   security.sudo.extraRules = [{
@@ -93,6 +105,36 @@
           { command = "/run/current-system/sw/bin/systemctl stop wg-quick-wg0"; options = [ "NOPASSWD" ]; }
       ];
   }];
+
+  # ==========================================
+  # NFS Mount (TrueNAS / Netzwerkspeicher)
+  # ==========================================
+  fileSystems."/home/roljon/mnt/Premiumize" = {
+    device = "192.168.0.145:/mnt/Premiumize/files";
+    fsType = "nfs";
+    options = [
+      "nfsvers=3" # Alternativ "nfsvers=4" oder "nfsvers=3", je nach TrueNAS-Einstellung    
+      "noauto"
+      "_netdev"
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=600"
+      "x-systemd.device-timeout=5s"
+      "x-systemd.mount-timeout=5s"
+    ];
+  };
+    fileSystems."/home/roljon/mnt/Premiumize2" = {
+    device = "192.168.0.145:/mnt/Premiumize2/files";
+    fsType = "nfs";
+    options = [
+      "nfsvers=3" # Alternativ "nfsvers=4" oder "nfsvers=3", je nach TrueNAS-Einstellung    
+      "noauto"
+      "_netdev"
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=600"
+      "x-systemd.device-timeout=5s"
+      "x-systemd.mount-timeout=5s"
+    ];
+  };
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
