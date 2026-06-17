@@ -13,8 +13,10 @@ ColumnLayout {
         Layout.preferredWidth: 96
         Layout.preferredHeight: 96
         radius: 16
-        color: optionMouseArea.containsMouse ? "#ffffff22" : "#ffffff11"
-        border.color: "#ffffff33"
+        color: optionMouseArea.containsMouse 
+            ? Qt.rgba(1, 1, 1, 0.13)
+            : Qt.rgba(1, 1, 1, 0.07)
+        border.color: Qt.rgba(1, 1, 1, 0.2)
         border.width: 1
 
         Text {
