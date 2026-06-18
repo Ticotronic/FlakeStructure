@@ -19,8 +19,6 @@ Singleton {
     function hide() {
         isClosing = true;
         closeRequested();
-        // Tatsächliches Verstecken erfolgt nach der Ausblend-Animation
-        // via hideImmediately(), aufgerufen vom Overlay-Timer
     }
 
     function hideImmediately() {
@@ -28,9 +26,6 @@ Singleton {
         isClosing = false;
     }
 
-    // ==========================================
-    // Aktionen — hier später den Lockscreen ersetzen
-    // ==========================================
     function shutdown() {
         hide();
         Quickshell.execDetached(["systemctl", "poweroff"]);
@@ -48,8 +43,6 @@ Singleton {
 
     function lock() {
         hide();
-        // TODO: durch eigenen Quickshell-Lockscreen ersetzen
-        // Platzhalter aktuell: swaylock
         Quickshell.execDetached(["swaylock"]);
     }
 }
