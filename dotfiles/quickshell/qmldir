@@ -7,8 +7,17 @@ TrayItem 1.0 TrayItem.qml
 TrayArea 1.0 TrayArea.qml
 SessionSlots 1.0 SessionSlots.qml
 WireguardButton 1.0 WireguardButton.qml
+
 PowerOverlay 1.0 PowerOverlay.qml
 PowerButton 1.0 PowerButton.qml
 PowerOption 1.0 PowerOption.qml
 #PowerMenu 1.0 PowerMenu.qml
 singleton PowerMenu 1.0 PowerMenu.qml
+
+singleton LauncherMenu 1.0 LauncherMenu.qml
+LauncherButton 1.0 LauncherButton.qml
+Launcher 1.0 Launcher.qml
+CategoryList 1.0 CategoryList.qml
+AppGrid 1.0 AppGrid.qml
+LauncherItem 1.0 LauncherItem.qml
+CustomItem 1.0 CustomItem.qml

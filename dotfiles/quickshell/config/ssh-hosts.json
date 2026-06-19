@@ -1,0 +1,14 @@
+[
+  {
+    "name": "trueNAS",
+    "host": "192.168.0.63",
+    "port": 22,
+    "user": "root"
+  },
+  {
+    "name": "vps-berlin",
+    "host": "bla.org",
+    "port": 53913,
+    "user": "roljon"
+  }
+]

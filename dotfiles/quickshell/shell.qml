@@ -197,4 +197,21 @@ ShellRoot {
         model: Quickshell.screens
         delegate: PowerOverlay {}
     }
+
+    // Shortcut zum Öffnen (Super+D)
+    // Da IpcHandler bereits vorhanden: in Niri config ergänzen:
+    // Super+D { spawn "qs" "ipc" "call" "launcher" "show"; }
+    IpcHandler {
+        target: "launcher"
+        function show() {
+            // Öffnet auf dem ersten Screen als Fallback
+            LauncherMenu.show(Quickshell.screens[0]);
+        }
+    }
+
+    // Launcher-Fenster pro Monitor
+    Variants {
+        model: Quickshell.screens
+        delegate: Launcher {}
+    }
 }

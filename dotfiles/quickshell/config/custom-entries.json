@@ -1,0 +1,14 @@
+[
+  {
+    "name": "VPN verbinden",
+    "description": "wg-quick up wg0",
+    "icon": "network-vpn",
+    "command": ["systemctl", "start", "wg-quick-wg0"]
+  },
+  {
+    "name": "Quickshell neu laden",
+    "description": "Konfiguration neu laden",
+    "icon": "view-refresh",
+    "command": ["qs", "reload"]
+  }
+]

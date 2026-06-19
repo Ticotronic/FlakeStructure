@@ -35,6 +35,11 @@ PanelWindow {
             }
         }
 
+        LauncherButton {
+            Layout.fillHeight: true
+            barScreen: topBar.screen
+        }
+
         Workspaces {
             Layout.fillHeight: true
             workspaces: filteredWorkspaces
