@@ -27,7 +27,7 @@ Rectangle {
             color: "#1e1e2e"
 
             IconImage {
-                source: customItem.itemIcon
+                source: "image://icon/" + customItem.itemIcon
                 width: 18; height: 18
                 anchors.centerIn: parent
             }

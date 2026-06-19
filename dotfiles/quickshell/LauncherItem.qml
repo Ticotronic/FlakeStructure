@@ -19,7 +19,7 @@ Column {
         border.width: 1
 
         IconImage {
-            source: appItem.app ? appItem.app.icon : ""
+            source: appItem.app ? "image://icon/" + appItem.app.icon : ""
             width: 36; height: 36
             anchors.centerIn: parent
         }

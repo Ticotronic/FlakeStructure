@@ -19,14 +19,14 @@ Singleton {
     // Kategorien aus .desktop-Kategorien ableiten
     // ==========================================
     readonly property var categoryIcons: ({
-        "Alle Apps":   "view-grid",
-        "Internet":    "network-wireless",
-        "Entwicklung": "applications-development",
-        "Grafik":      "applications-graphics",
-        "Multimedia":  "applications-multimedia",
-        "System":      "applications-system",
-        "Spiele":      "applications-games",
-        "Sonstiges":   "applications-other"
+        "Alle Apps":   "image://icon/view-grid",
+        "Internet":    "image://icon/network-wireless",
+        "Entwicklung": "image://icon/applications-development",
+        "Grafik":      "image://icon/applications-graphics",
+        "Multimedia":  "image://icon/applications-multimedia",
+        "System":      "image://icon/applications-system",
+        "Spiele":      "image://icon/applications-games",
+        "Sonstiges":   "image://icon/applications-other"
     })
 
     readonly property var desktopToCategory: ({
