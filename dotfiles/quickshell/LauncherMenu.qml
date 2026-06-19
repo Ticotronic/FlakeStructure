@@ -74,7 +74,7 @@ Singleton {
         id: appLoader
         command: [
             "bash", "-c",
-            "find /usr/share/applications ~/.local/share/applications -name '*.desktop' 2>/dev/null | xargs grep -l '^Type=Application' | while read f; do " +
+            "find /usr/share/applications /run/current-system/sw/share/applications ~/.local/share/applications -name '*.desktop' 2>/dev/null | xargs grep -l '^Type=Application' | while read f; do " +
             "name=$(grep '^Name=' \"$f\" | head -1 | cut -d= -f2-); " +
             "exec=$(grep '^Exec=' \"$f\" | head -1 | cut -d= -f2- | sed 's/ %[a-zA-Z]//g'); " +
             "icon=$(grep '^Icon=' \"$f\" | head -1 | cut -d= -f2-); " +
