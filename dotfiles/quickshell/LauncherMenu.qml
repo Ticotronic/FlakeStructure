@@ -15,6 +15,15 @@ Singleton {
     property var customEntries: []
     property var sshHosts: []
 
+    property int currentAppIndex: 0
+    property int currentCategoryIndex: 0
+
+    onSearchTextChanged: currentAppIndex = 0
+    onActiveCategoryChanged: currentAppIndex = 0 
+
+    readonly property var categoryNames: Object.keys(categoryIcons).concat(["SSH-Hosts", "Favoriten", "Skripte"])
+
+
     // ==========================================
     // Kategorien aus .desktop-Kategorien ableiten
     // ==========================================
@@ -50,6 +59,40 @@ Singleton {
         searchText = "";
         activeCategory = "Alle Apps";
         visible = true;
+    }
+
+    function nextCategory() {
+    var i = currentCategoryIndex + 1;
+    if (i >= categoryNames.length) i = 0;
+    currentCategoryIndex = i;
+    activeCategory = categoryNames[i];
+    currentAppIndex = 0;
+    }
+
+    function prevCategory() {
+        var i = currentCategoryIndex - 1;
+        if (i < 0) i = categoryNames.length - 1;
+        currentCategoryIndex = i;
+        activeCategory = categoryNames[i];
+        currentAppIndex = 0;
+    }
+
+    function nextApp() {
+        if (currentAppIndex < filteredApps.length - 1)
+            currentAppIndex++;
+    }
+
+    function prevApp() {
+        if (currentAppIndex > 0)
+            currentAppIndex--;
+    }
+
+    function activateCurrent() {
+        if (filteredApps.length === 0) return;
+        var app = filteredApps[currentAppIndex];
+        if (!app) return;
+        hide();
+        Quickshell.execDetached(app.exec.split(" "));
     }
 
     function hide() {

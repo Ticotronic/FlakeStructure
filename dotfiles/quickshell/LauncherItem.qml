@@ -14,8 +14,13 @@ Column {
         width: 56; height: 56
         anchors.horizontalCenter: parent.horizontalCenter
         radius: 10
-        color: itemMouseArea.containsMouse ? "#313244" : "transparent"
-        border.color: itemMouseArea.containsMouse ? "#45475a" : "transparent"
+        
+        // Index des Items im gefilterten Array prüfen
+        property int myIndex: LauncherMenu.filteredApps.indexOf(appItem.app)
+        property bool isSelected: myIndex === LauncherMenu.currentAppIndex
+
+        color: isSelected ? "#45475a" : (itemMouseArea.containsMouse ? "#313244" : "transparent")
+        border.color: isSelected ? "#89b4fa" : (itemMouseArea.containsMouse ? "#45475a" : "transparent")
         border.width: 1
 
         IconImage {
