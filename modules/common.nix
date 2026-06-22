@@ -40,6 +40,8 @@
   # und stellt das Systemtray-Applet bereit
   services.blueman.enable = true;
 
+  programs.dconf.enable = true;
+
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
 #    alacritty
@@ -56,6 +58,11 @@
     vlc
     catppuccin-sddm
     catppuccin-cursors.macchiatoDark
+    p7zip
+    peazip
+    file-roller
+    gparted
+    papirus-icon-theme
   ];
 
   # ==========================================
@@ -138,6 +145,10 @@
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
+  };
+
+  environment.variables = {
+      XCURSOR_THEME = "catppuccin-macchiato-dark-cursors";
   };
 
   # ==========================================

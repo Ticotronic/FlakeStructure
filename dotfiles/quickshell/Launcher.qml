@@ -14,6 +14,7 @@ PanelWindow {
     anchors { top: true; left: true; right: true; bottom: true }
 
     WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     exclusiveZone: -1
 
     // Klick außerhalb schließt den Launcher
@@ -32,6 +33,9 @@ PanelWindow {
         color: "#1e1e2e"
         border.color: "#313244"
         border.width: 1
+        focus: true
+
+        Keys.onEscapePressed: LauncherMenu.hide()
 
         // Klick ins Panel nicht durchleiten
         MouseArea {
@@ -190,7 +194,4 @@ PanelWindow {
             }
         }
     }
-
-    // ESC schließt auch wenn Focus außerhalb TextInput
-    Keys.onEscapePressed: LauncherMenu.hide()
 }

@@ -38,6 +38,7 @@
     };
   };
 
+
   sops.age.sshKeyPaths = [ "/home/roljon/.ssh/id_ed25519" ];  
   sops.defaultSopsFile = ../secrets/mail.yaml;
   sops.secrets."gmx_rj" = {};
@@ -78,5 +79,35 @@
   ];
 
   xdg.configFile."quickshell".source = ../dotfiles/quickshell;
+
+
+  # ==========================================
+  # GTK & QT Theming (für Quickshell & Niri)
+  # ==========================================
+  gtk = {
+    # WICHTIG: Das Hauptmodul muss aktiviert sein, sonst wird iconTheme ignoriert!
+    enable = true; 
+    
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+
+    # Optional: Setzt auch das Fenster-Theme für GTK-Apps auf Adwaita-Dark
+    theme = {
+      name = "Adwaita-dark";
+      package = pkgs.gnome-themes-extra;
+    };
+  };
+
+  qt = {
+    enable = true;
+    style.name = "adwaita-dark";
+    
+    # Der Wayland-Trick: Zwingt Qt-Anwendungen, sich optisch an dein GTK-Theme anzupassen
+    platformTheme.name = "gtk"; 
+  };
+
+
 
 }
