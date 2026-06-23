@@ -35,6 +35,15 @@ PanelWindow {
         border.width: 1
         focus: true
 
+        onWidthChanged: updateColumns()
+
+        Component.onCompleted: updateColumns()
+
+        function updateColumns() {
+            // 160px Kategorien-Spalte, 20px Padding, 86px pro App-Item
+            LauncherMenu.gridColumns = Math.floor((panel.width - 160 - 20) / 86);
+        }
+
         Keys.onEscapePressed: LauncherMenu.hide()
         Keys.onTabPressed: LauncherMenu.nextCategory()
         Keys.onBacktabPressed: LauncherMenu.prevCategory()
