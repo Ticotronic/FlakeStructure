@@ -36,8 +36,9 @@ ScrollView {
         // ==========================================
         // App-Grid (Flow)
         // ==========================================
-        Flow {
+        Grid {
             width: parent.width - 20
+            columns: LauncherMenu.gridColumns
             spacing: 6
             visible: LauncherMenu.activeCategory !== "SSH-Hosts"
                      && LauncherMenu.activeCategory !== "Favoriten"

@@ -38,9 +38,11 @@ PanelWindow {
         Keys.onEscapePressed: LauncherMenu.hide()
         Keys.onTabPressed: LauncherMenu.nextCategory()
         Keys.onBacktabPressed: LauncherMenu.prevCategory()
-        Keys.onDownPressed: LauncherMenu.nextApp()
-        Keys.onUpPressed: LauncherMenu.prevApp()
+        Keys.onDownPressed: LauncherMenu.nextRow()
+        Keys.onUpPressed: LauncherMenu.prevRow()
         Keys.onReturnPressed: LauncherMenu.activateCurrent()
+        Keys.onLeftPressed: LauncherMenu.prevApp()
+        Keys.onRightPressed: LauncherMenu.nextApp()
 
         // Klick ins Panel nicht durchleiten
         MouseArea {
@@ -93,9 +95,13 @@ PanelWindow {
 
                         // Tastenkürzel auch hier aktivieren, damit sie funktionieren, wenn der Fokus im TextInput liegt
                         Keys.onEscapePressed: LauncherMenu.hide()
-                        Keys.onDownPressed: LauncherMenu.nextApp()
-                        Keys.onUpPressed: LauncherMenu.prevApp()
+                        Keys.onTabPressed: LauncherMenu.nextCategory()
+                        Keys.onBacktabPressed: LauncherMenu.prevCategory()
+                        Keys.onDownPressed: LauncherMenu.nextRow()
+                        Keys.onUpPressed: LauncherMenu.prevRow()
                         Keys.onReturnPressed: LauncherMenu.activateCurrent()
+                        Keys.onLeftPressed: LauncherMenu.prevApp()
+                        Keys.onRightPressed: LauncherMenu.nextApp()
                     }
 
                     Text {

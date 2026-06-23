@@ -17,6 +17,7 @@ Singleton {
 
     property int currentAppIndex: 0
     property int currentCategoryIndex: 0
+    property int gridColumns: 6
 
     onSearchTextChanged: currentAppIndex = 0
     onActiveCategoryChanged: currentAppIndex = 0 
@@ -85,6 +86,22 @@ Singleton {
     function prevApp() {
         if (currentAppIndex > 0)
             currentAppIndex--;
+    }
+
+    function nextRow() {
+        var next = currentAppIndex + gridColumns;
+        if (next < filteredApps.length)
+            currentAppIndex = next;
+        else
+            currentAppIndex = filteredApps.length - 1;
+    }
+
+    function prevRow() {
+        var prev = currentAppIndex - gridColumns;
+        if (prev >= 0)
+            currentAppIndex = prev;
+        else
+            currentAppIndex = 0;
     }
 
     function activateCurrent() {
