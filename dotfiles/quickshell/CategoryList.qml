@@ -22,7 +22,7 @@ Column {
     }
 
     Repeater {
-        model: Object.keys(LauncherMenu.categoryIcons)
+        model: LauncherMenu.availableCategories
         delegate: Rectangle {
             width: parent.width
             height: 34

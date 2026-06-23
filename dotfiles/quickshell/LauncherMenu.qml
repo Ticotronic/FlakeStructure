@@ -19,10 +19,24 @@ Singleton {
     property int currentCategoryIndex: 0
     property int gridColumns: 6
 
+    property var availableCategories: {
+        var _apps = appList;
+        var cats = {};
+        for (var i = 0; i < _apps.length; i++) {
+            cats[_apps[i].category] = true;
+        }
+        var result = ["Alle Apps"];
+        var allCats = Object.keys(categoryIcons);
+        for (var j = 1; j < allCats.length; j++) {
+            if (cats[allCats[j]]) result.push(allCats[j]);
+        }
+        return result;
+    }
+
     onSearchTextChanged: currentAppIndex = 0
     onActiveCategoryChanged: currentAppIndex = 0 
 
-    readonly property var categoryNames: Object.keys(categoryIcons).concat(["SSH-Hosts", "Favoriten", "Skripte"])
+    readonly property var categoryNames: availableCategories.concat(["SSH-Hosts", "Favoriten", "Skripte"])
 
 
     // ==========================================
