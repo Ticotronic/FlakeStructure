@@ -14,10 +14,14 @@ Column {
         width: 56; height: 56
         anchors.horizontalCenter: parent.horizontalCenter
         radius: 10
-        
-        // Index des Items im gefilterten Array prüfen
-        property int myIndex: LauncherMenu.filteredApps.indexOf(appItem.app)
-        property bool isSelected: myIndex === LauncherMenu.currentAppIndex
+
+        // Index über Namen vergleichen statt Objekt-Referenz
+        property bool isSelected: {
+            var current = LauncherMenu.filteredApps[LauncherMenu.currentAppIndex];
+            return current !== undefined && appItem.app !== null
+                && current.name === appItem.app.name
+                && current.exec === appItem.app.exec;
+        }
 
         color: isSelected ? "#45475a" : (itemMouseArea.containsMouse ? "#313244" : "transparent")
         border.color: isSelected ? "#89b4fa" : (itemMouseArea.containsMouse ? "#45475a" : "transparent")
