@@ -182,25 +182,29 @@ Singleton {
     FileView {
         id: customFile
         path: Qt.resolvedUrl("config/custom-entries.json")
-        onTextChanged: {
+        onLoaded: {
             try {
                 launcherMenu.customEntries = JSON.parse(customFile.text);
-            } catch (e) {}
+            } catch (e) {
+                console.log("Custom JSON Fehler:", e);
+            }
         }
     }
-
     // ==========================================
     // ssh-hosts.json laden
     // ==========================================
     FileView {
         id: sshFile
         path: Qt.resolvedUrl("config/ssh-hosts.json")
-        onTextChanged: {
+        onLoaded: {
             try {
                 launcherMenu.sshHosts = JSON.parse(sshFile.text);
-            } catch (e) {}
+            } catch (e) {
+                console.log("SSH JSON Fehler:", e);
+            }
         }
     }
+
 
     // ==========================================
     // Gefilterte App-Liste

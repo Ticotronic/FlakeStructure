@@ -105,7 +105,7 @@
     style.name = "adwaita-dark";
     
     # Der Wayland-Trick: Zwingt Qt-Anwendungen, sich optisch an dein GTK-Theme anzupassen
-    platformTheme.name = "gtk"; 
+    platformTheme.name = "qtct"; 
   };
 
 
