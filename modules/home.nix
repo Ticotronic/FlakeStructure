@@ -105,7 +105,11 @@
     style.name = "adwaita-dark";
     
     # Der Wayland-Trick: Zwingt Qt-Anwendungen, sich optisch an dein GTK-Theme anzupassen
-    platformTheme.name = "qtct"; 
+    # WICHTIG: "gtk3" sorgt dafür, dass Qt-Apps (u.a. Quickshell) auch das
+    # per gtk.iconTheme gesetzte Papirus-Dark Icon-Theme tatsächlich nutzen.
+    # Mit "qtct" würde stattdessen eine separate qt6ct-Konfiguration greifen,
+    # die standardmäßig kein Icon-Theme gesetzt hat -> Fallback auf "hicolor".
+    platformTheme.name = "gtk3";
   };
 
 
