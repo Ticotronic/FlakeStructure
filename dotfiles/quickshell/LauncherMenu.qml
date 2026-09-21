@@ -12,8 +12,6 @@ Singleton {
     property string activeCategory: "Alle Apps"
 
     property var appList: []
-    property var customEntries: []
-    property var sshHosts: []
 
     property int currentAppIndex: 0
     property int currentCategoryIndex: 0
@@ -182,26 +180,37 @@ Singleton {
     FileView {
         id: customFile
         path: Qt.resolvedUrl("config/custom-entries.json")
-        onLoaded: {
-            try {
-                launcherMenu.customEntries = JSON.parse(customFile.text);
-            } catch (e) {
-                console.log("Custom JSON Fehler:", e);
-            }
+        blockLoading: true
+        watchChanges: true
+        onFileChanged: reload()
+    }
+
+    property var customEntries: {
+        try {
+            return JSON.parse(customFile.text());
+        } catch (e) {
+            console.log("Custom JSON Fehler:", e);
+            return [];
         }
     }
+
     // ==========================================
     // ssh-hosts.json laden
     // ==========================================
     FileView {
         id: sshFile
         path: Qt.resolvedUrl("config/ssh-hosts.json")
-        onLoaded: {
-            try {
-                launcherMenu.sshHosts = JSON.parse(sshFile.text);
-            } catch (e) {
-                console.log("SSH JSON Fehler:", e);
-            }
+        blockLoading: true
+        watchChanges: true
+        onFileChanged: reload()
+    }
+
+    property var sshHosts: {
+        try {
+            return JSON.parse(sshFile.text());
+        } catch (e) {
+            console.log("SSH JSON Fehler:", e);
+            return [];
         }
     }
 
