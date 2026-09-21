@@ -86,7 +86,7 @@ ScrollView {
                     itemDescription: (modelData.user || "root") + "@" + modelData.host + " · Port " + (modelData.port || 22)
                     itemIcon: "network-server"
                     itemCommand: [
-                        "kitty", "--", "ssh",
+                        "kitty", "ssh",
                         "-p", String(modelData.port || 22),
                         (modelData.user || "root") + "@" + modelData.host
                     ]

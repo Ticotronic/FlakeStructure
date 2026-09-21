@@ -48,6 +48,7 @@
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
 #    alacritty
+    kitty
     fuzzel
     git
     fastfetch
