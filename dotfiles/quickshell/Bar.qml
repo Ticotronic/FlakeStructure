@@ -83,4 +83,8 @@ PanelWindow {
             Layout.fillHeight: true
         }
     }
+
+    ClockWidget {
+        anchors.centerIn: parent
+    }
 }

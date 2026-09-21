@@ -21,3 +21,4 @@ CategoryList 1.0 CategoryList.qml
 AppGrid 1.0 AppGrid.qml
 LauncherItem 1.0 LauncherItem.qml
 CustomItem 1.0 CustomItem.qml
+ClockWidget 1.0 ClockWidget.qml
