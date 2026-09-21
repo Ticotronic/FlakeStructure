@@ -11,7 +11,7 @@
   # --- Dein Benutzer-Account ---
   users.users.roljon = {
     isNormalUser = true;
-    extraGroups = [ "networkmanager" "wheel" "video" ];
+    extraGroups = [ "networkmanager" "wheel" "video" "dialout" ];
   };
 
   # Deutsches Tastaturlayout in der TTY-Konsole
@@ -26,6 +26,9 @@
 
   # Niri als Wayland-Compositor
   programs.niri.enable = true;
+
+  # Das unverzichtbare Sicherheitsnetz für alte (X11) und sture Electron-Programme
+  programs.xwayland.enable = true;
 
   # NetworkManager aktivieren
   networking.networkmanager.enable = true;
@@ -63,6 +66,13 @@
     file-roller
     gparted
     papirus-icon-theme
+    xwayland-satellite
+    arduino-ide
+    arduino-cli
+
+    (python3.withPackages(ps: with ps; [
+      pyserial
+    ]))
   ];
 
   # ==========================================
