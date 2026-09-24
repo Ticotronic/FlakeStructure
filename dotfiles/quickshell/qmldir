@@ -22,3 +22,6 @@ AppGrid 1.0 AppGrid.qml
 LauncherItem 1.0 LauncherItem.qml
 CustomItem 1.0 CustomItem.qml
 ClockWidget 1.0 ClockWidget.qml
+
+singleton CalendarEvents 1.0 CalendarEvents.qml
+EventDialog 1.0 EventDialog.qml

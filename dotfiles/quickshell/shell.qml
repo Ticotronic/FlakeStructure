@@ -214,4 +214,10 @@ ShellRoot {
         model: Quickshell.screens
         delegate: Launcher {}
     }
+
+    // Termin-Dialog-Fenster pro Monitor
+    Variants {
+        model: Quickshell.screens
+        delegate: EventDialog {}
+    }
 }

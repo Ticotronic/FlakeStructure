@@ -194,8 +194,10 @@ Item {
                         id: dayCell
                         required property var model
                         readonly property bool isCurrentMonth: model.month === monthGrid.month
+                        readonly property string dateKey: Qt.formatDate(model.date, "yyyy-MM-dd")
+                        readonly property bool hasEvents: CalendarEvents.datesWithEvents[dateKey] === true
 
-                        color: model.today ? "#a6e3a1" : "transparent"
+                        color: model.today ? "#a6e3a1" : (dayMouseArea.containsMouse ? "#313244" : "transparent")
                         radius: 6
                         opacity: isCurrentMonth ? 1 : 0.35
 
@@ -205,6 +207,28 @@ Item {
                             color: dayCell.model.today ? "#11111b" : "#cdd6f4"
                             font.pixelSize: 16
                             font.bold: dayCell.model.today
+                        }
+
+                        // Kleiner Marker-Punkt für Tage mit Terminen
+                        Rectangle {
+                            visible: dayCell.hasEvents
+                            width: 4; height: 4; radius: 2
+                            color: dayCell.model.today ? "#11111b" : "#f9e2af"
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 3
+                        }
+
+                        MouseArea {
+                            id: dayMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (clockWidget.barWindow) {
+                                    CalendarEvents.openForDate(dayCell.dateKey, clockWidget.barWindow.screen);
+                                }
+                            }
                         }
                     }
                 }
