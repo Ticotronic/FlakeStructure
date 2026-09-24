@@ -57,7 +57,7 @@ Item {
         // damit der Popup unabhängig von seiner eigenen Breite exakt zentriert wird
         anchor.window: clockWidget.barWindow
         anchor.rect: Qt.rect(
-            clockWidget.mapToItem(null, 0, 0).x + clockWidget.width / 2 - 460/2,
+            clockWidget.mapToItem(null, 0, 0).x + clockWidget.width / 2 - calendarPopup.implicitWidth / 2,
             clockWidget.barWindow ? clockWidget.barWindow.height : 0,
             0,
             0
