@@ -86,5 +86,6 @@ PanelWindow {
 
     ClockWidget {
         anchors.centerIn: parent
+        barWindow: topBar
     }
 }
