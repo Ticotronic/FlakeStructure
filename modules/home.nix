@@ -40,7 +40,7 @@
 
 
   sops.age.sshKeyPaths = [ "/home/roljon/.ssh/id_ed25519" ];  
-  sops.defaultSopsFile = ../secrets/mail.yaml;
+  sops.defaultSopsFile = ../secrets/passwords.yaml;
   sops.secrets."gmx_rj" = {};
 
   accounts.email.accounts = {
