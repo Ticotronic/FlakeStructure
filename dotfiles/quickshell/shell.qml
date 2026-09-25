@@ -220,4 +220,7 @@ ShellRoot {
         model: Quickshell.screens
         delegate: EventDialog {}
     }
+
+    // Toast-Benachrichtigung für Termin-Erinnerungen (nur einmal, nicht pro Monitor)
+    ReminderToastArea {}
 }

@@ -25,3 +25,4 @@ ClockWidget 1.0 ClockWidget.qml
 
 singleton CalendarEvents 1.0 CalendarEvents.qml
 EventDialog 1.0 EventDialog.qml
+ReminderToastArea 1.0 ReminderToastArea.qml

@@ -74,6 +74,41 @@ Singleton {
     }
 
     // ==========================================
+    // Erinnerungen: periodische Prüfung + Signal
+    // ==========================================
+    property var firedReminders: ({})  // { eventId: true } – nur für diese Session
+
+    signal reminderFired(var evt)
+
+    Timer {
+        interval: 30000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: calendarEvents.checkReminders()
+    }
+
+    function checkReminders() {
+        var now = new Date();
+        var list = eventsFile.adapter ? eventsFile.adapter.events : [];
+        for (var i = 0; i < list.length; i++) {
+            var e = list[i];
+            if (e.allDay) continue;
+            if (e.reminder === undefined || e.reminder === null || e.reminder < 0) continue;
+            if (firedReminders[e.id]) continue;
+
+            var startDate = new Date(e.startDate + "T" + (e.startTime || "00:00") + ":00");
+            if (isNaN(startDate.getTime())) continue;
+
+            var triggerTime = new Date(startDate.getTime() - e.reminder * 60000);
+            if (now >= triggerTime && now <= startDate) {
+                firedReminders[e.id] = true;
+                reminderFired(e);
+            }
+        }
+    }
+
+    // ==========================================
     // Dialog-Zustand (Erstellen/Bearbeiten)
     // ==========================================
     property bool dialogVisible: false
