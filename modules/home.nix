@@ -80,11 +80,19 @@
     (pkgs.writeShellScriptBin "qs-stats" (builtins.readFile ./qs-stats.sh))
 
     (pkgs.writeShellScriptBin "nextcloud-caldav-fetch" ''
-      export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"   # ← anpassen
-      export NEXTCLOUD_USERNAME="roljon"                         # ← anpassen
-      export NEXTCLOUD_CALENDAR_PATH="personal"                  # ← s. Kommentar unten
+      export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
+      export NEXTCLOUD_USERNAME="roljon"
+      export NEXTCLOUD_CALENDAR_PATH="personal"
       export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
       ${builtins.readFile ./nextcloud-caldav-fetch-body.sh}
+    '')
+
+      (pkgs.writeShellScriptBin "nextcloud-caldav-push" ''
+        export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
+        export NEXTCLOUD_USERNAME="roljon"
+        export NEXTCLOUD_CALENDAR_PATH="personal"
+        export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
+        ${builtins.readFile ./nextcloud-caldav-push-body.sh}
     '')
   ];
 
