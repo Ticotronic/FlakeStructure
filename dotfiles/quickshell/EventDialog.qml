@@ -127,6 +127,19 @@ PanelWindow {
 
     onVisibleChanged: if (visible) resetForm()
 
+    // Switching from "new event" to "edit this one" (clicking "Bearbeiten"
+    // on an entry in the existing-events list below) happens WHILE the
+    // dialog is already visible, so onVisibleChanged above never fires for
+    // it (visible stays true). Watch editingEventId directly as well so the
+    // form actually reloads with that event's data instead of staying on
+    // whatever was typed for a new event.
+    Connections {
+        target: CalendarEvents
+        function onEditingEventIdChanged() {
+            if (dialogWindow.visible) dialogWindow.resetForm();
+        }
+    }
+
     function save() {
         var evt = {
             id: isEditing ? CalendarEvents.editingEventId : CalendarEvents.newEventId(),
