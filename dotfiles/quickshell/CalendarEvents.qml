@@ -4,13 +4,19 @@ import Quickshell
 import Quickshell.Io
 
 // Local event store (JSON on disk, outside the read-only Nix-store-symlinked
-// config tree) merged together with read-only events fetched from Nextcloud
-// via CalDAV (NextcloudCalDAV.qml). Also owns the reminder-toast trigger
-// logic and the EventDialog open/close state shared across all screens.
+// config tree) merged together with events fetched from Nextcloud via
+// CalDAV (NextcloudCalDAV.qml). Also owns the reminder-toast trigger logic
+// and the EventDialog open/close state shared across all screens.
 //
-// Stufe 2: local events created/edited/deleted here are also pushed to
-// Nextcloud via CalDAV PUT/DELETE (nextcloud-caldav-push), fire-and-forget.
-// Nextcloud-native events (created directly in Nextcloud) stay read-only.
+// Stufe 2: new events can be created either "local" (stored only here,
+// never pushed) or "nextcloud" (stored here AND pushed to Nextcloud via
+// nextcloud-caldav-push, fire-and-forget). Nextcloud-NATIVE events (created
+// directly in Nextcloud, or by anything other than this Quickshell config)
+// can also be edited/deleted from here: those writes go straight to
+// Nextcloud via their real UID, with no local copy kept, plus an
+// optimistic in-memory patch (NextcloudCalDAV.patchRemoteEvent/
+// removeRemoteEvent) so the UI updates immediately instead of waiting for
+// the next scheduled fetch.
 Singleton {
     id: calendarEvents
 
@@ -35,9 +41,9 @@ Singleton {
 
     readonly property var mergedEvents: {
         var local = eventsFile.adapter ? eventsFile.adapter.events : [];
-        // Events we pushed ourselves come back from the next Nextcloud
-        // fetch with the same "local-<id>" UID. Filter those remote echoes
-        // out so a self-authored event doesn't show up twice (once local/
+        // Local events pushed to Nextcloud come back from the next fetch
+        // with the same "local-<id>" UID. Filter those remote echoes out
+        // so a self-authored event doesn't show up twice (once local/
         // yellow, once nextcloud/blue).
         var remote = NextcloudCalDAV.remoteEvents.filter(function (e) {
             return !(e.uid && e.uid.indexOf("local-") === 0);
@@ -54,13 +60,15 @@ Singleton {
         return combined;
     }
 
-    // ---- CRUD (local events; also pushed to Nextcloud) -------------------
+    // ---- CRUD (local events; optionally mirrored to Nextcloud) -----------
 
     function addEvent(evt) {
         var list = eventsFile.adapter.events.slice();
         list.push(evt);
         eventsFile.adapter.events = list;
-        pushEventToNextcloud(evt);
+        if (evt.calendar !== "local") {
+            pushEventToNextcloud(evt);
+        }
     }
 
     function updateEvent(id, updatedEvt) {
@@ -72,20 +80,58 @@ Singleton {
             }
         }
         eventsFile.adapter.events = list;
-        pushEventToNextcloud(updatedEvt);
+        if (updatedEvt.calendar !== "local") {
+            pushEventToNextcloud(updatedEvt);
+        }
     }
 
     function deleteEvent(id) {
-        var list = eventsFile.adapter.events.filter(function (e) { return e.id !== id; });
-        eventsFile.adapter.events = list;
-        deleteEventFromNextcloud(id);
+        var list = eventsFile.adapter.events;
+        var toDelete = null;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) { toDelete = list[i]; break; }
+        }
+        var newList = list.filter(function (e) { return e.id !== id; });
+        eventsFile.adapter.events = newList;
+        if (toDelete && toDelete.calendar !== "local") {
+            deleteEventFromNextcloud(id);
+        }
     }
 
     function newEventId() {
         return Date.now() + "-" + Math.floor(Math.random() * 100000);
     }
 
-    // ---- Nextcloud push (Stufe 2, fire-and-forget) ------------------------
+    // ---- Direct edit/delete of Nextcloud-NATIVE events --------------------
+    // (events with source === "nextcloud" that were never stored locally —
+    // created directly in Nextcloud, not via this Quickshell config)
+
+    function updateNextcloudEvent(uid, evt) {
+        var ics = calendarEvents.buildIcs(evt, uid);
+        Quickshell.execDetached(["nextcloud-caldav-push", "put", uid, ics]);
+        NextcloudCalDAV.patchRemoteEvent(uid, evt);
+        calendarEvents.scheduleQuickRefetch();
+    }
+
+    function deleteNextcloudEventDirect(uid) {
+        Quickshell.execDetached(["nextcloud-caldav-push", "delete", uid, ""]);
+        NextcloudCalDAV.removeRemoteEvent(uid);
+        calendarEvents.scheduleQuickRefetch();
+    }
+
+    // Re-fetch shortly after a direct Nextcloud write so the optimistic
+    // patch above gets reconciled with what the server actually accepted.
+    Timer {
+        id: quickRefetchTimer
+        interval: 2000
+        repeat: false
+        onTriggered: NextcloudCalDAV.fetchNow()
+    }
+    function scheduleQuickRefetch() {
+        quickRefetchTimer.restart();
+    }
+
+    // ---- Nextcloud push (local events with calendar !== "local") ----------
 
     function pushEventToNextcloud(evt) {
         var uid = "local-" + evt.id;
@@ -195,7 +241,10 @@ Singleton {
         return set;
     }
 
-    // ---- Reminders (local events only; all-day events have no reminder) --
+    // ---- Reminders (all-day events have no reminder) ----------------------
+    // Scans mergedEvents (local + Nextcloud-native), so a reminder set on a
+    // genuinely Nextcloud-native event — via its VALARM, whether set in
+    // Nextcloud itself or through an edit made here — also fires a toast.
 
     property var firedReminders: ({})
     signal reminderFired(var evt)
@@ -210,7 +259,7 @@ Singleton {
 
     function checkReminders() {
         var now = new Date();
-        var list = eventsFile.adapter ? eventsFile.adapter.events : [];
+        var list = calendarEvents.mergedEvents;
         for (var i = 0; i < list.length; i++) {
             var e = list[i];
             if (e.allDay) continue;

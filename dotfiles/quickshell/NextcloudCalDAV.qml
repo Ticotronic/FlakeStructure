@@ -3,10 +3,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Stufe 1: read-only CalDAV client against the user's self-hosted Nextcloud.
-// Fetches VEVENTs in a rolling window (-31 days .. +180 days) every 10 minutes,
-// parses the iCalendar response and exposes it as `remoteEvents`, which
-// CalendarEvents.qml merges together with the local JSON-backed events.
+// Read/write CalDAV client against the user's self-hosted Nextcloud.
+// Fetches VEVENTs in a rolling window (-31 days .. +180 days) every 10
+// minutes, parses the iCalendar response and exposes it as `remoteEvents`,
+// which CalendarEvents.qml merges together with the local JSON-backed
+// events. Also exposes patchRemoteEvent/removeRemoteEvent so an edit or
+// delete of a Nextcloud-native event (done via nextcloud-caldav-push,
+// triggered from CalendarEvents.qml) can be reflected in the UI
+// immediately, ahead of the next real fetch confirming it server-side.
 Singleton {
     id: nextcloudCalDAV
 
@@ -53,6 +57,37 @@ Singleton {
                 nextcloudCalDAV.lastFetchFailed = true;
             }
         }
+    }
+
+    // ---- Optimistic local patching (edit/delete round-trip via push) -----
+
+    function patchRemoteEvent(uid, evt) {
+        var list = nextcloudCalDAV.remoteEvents.slice();
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].uid === uid) {
+                list[i] = Object.assign({}, list[i], {
+                    title: evt.title,
+                    allDay: evt.allDay,
+                    startDate: evt.startDate,
+                    startTime: evt.startTime,
+                    endDate: evt.endDate,
+                    endTime: evt.endTime,
+                    location: evt.location,
+                    description: evt.description,
+                    reminder: evt.reminder,
+                    repeat: evt.repeat,
+                    color: evt.color
+                });
+                nextcloudCalDAV.remoteEvents = list;
+                return;
+            }
+        }
+    }
+
+    function removeRemoteEvent(uid) {
+        nextcloudCalDAV.remoteEvents = nextcloudCalDAV.remoteEvents.filter(function (e) {
+            return e.uid !== uid;
+        });
     }
 
     // ---- XML / iCalendar helpers -------------------------------------
@@ -136,6 +171,39 @@ Singleton {
         return { date: y2 + "-" + m2 + "-" + d2, time: hh + ":" + mm, allDay: false };
     }
 
+    // ---- VALARM (reminder) parsing ----------------------------------
+
+    function parseDurationToMinutes(dur) {
+        // Examples: -PT15M, -PT1H, -PT1H30M, -P1D, PT0M.
+        // Only handles the simple "before start" relative-duration form
+        // our own buildIcs() writes (and that Nextcloud/most clients use);
+        // an absolute DATE-TIME trigger or unparsable value falls back to -1.
+        var m = String(dur).match(/^[+-]?P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+        if (!m) return -1;
+        var days = parseInt(m[1] || "0");
+        var hours = parseInt(m[2] || "0");
+        var minutes = parseInt(m[3] || "0");
+        return days * 1440 + hours * 60 + minutes;
+    }
+
+    function findValarmTriggerMinutes(evLines) {
+        var inAlarm = false;
+        for (var i = 0; i < evLines.length; i++) {
+            var line = evLines[i].trim();
+            if (line.toUpperCase() === "BEGIN:VALARM") { inAlarm = true; continue; }
+            if (line.toUpperCase() === "END:VALARM") { inAlarm = false; continue; }
+            if (inAlarm) {
+                var colonIdx = line.indexOf(":");
+                if (colonIdx === -1) continue;
+                var head = line.substring(0, colonIdx).split(";")[0];
+                if (head.toUpperCase() === "TRIGGER") {
+                    return nextcloudCalDAV.parseDurationToMinutes(line.substring(colonIdx + 1));
+                }
+            }
+        }
+        return -1;
+    }
+
     function parseResponse(xmlText) {
         var events = [];
         var blocks = nextcloudCalDAV.extractCalendarDataBlocks(xmlText);
@@ -167,6 +235,7 @@ Singleton {
                 var descriptionField = nextcloudCalDAV.findIcsField(evLines, "DESCRIPTION");
                 var dtstartField = nextcloudCalDAV.findIcsField(evLines, "DTSTART");
                 var dtendField = nextcloudCalDAV.findIcsField(evLines, "DTEND");
+                var rruleField = nextcloudCalDAV.findIcsField(evLines, "RRULE");
 
                 if (!uidField || !dtstartField) continue;
 
@@ -174,6 +243,20 @@ Singleton {
                 var endInfo = dtendField
                     ? nextcloudCalDAV.parseIcsDateTime(dtendField.value, dtendField.params)
                     : startInfo;
+
+                var repeatValue = "none";
+                if (rruleField) {
+                    var freqMatch = rruleField.value.match(/FREQ=([A-Z]+)/);
+                    if (freqMatch) {
+                        var freqLower = freqMatch[1].toLowerCase();
+                        // Only our own simple FREQ-only values round-trip cleanly;
+                        // anything more complex (BYDAY, INTERVAL, COUNT, ...) is
+                        // reported as its base frequency, not fully reconstructed.
+                        if (["daily", "weekly", "monthly", "yearly"].indexOf(freqLower) !== -1) {
+                            repeatValue = freqLower;
+                        }
+                    }
+                }
 
                 events.push({
                     id: "nc-" + uidField.value,
@@ -186,8 +269,8 @@ Singleton {
                     endTime: endInfo.time,
                     location: locationField ? locationField.value : "",
                     description: descriptionField ? descriptionField.value : "",
-                    reminder: -1,
-                    repeat: "none",
+                    reminder: nextcloudCalDAV.findValarmTriggerMinutes(evLines),
+                    repeat: repeatValue,
                     color: "#74c7ec",
                     source: "nextcloud"
                 });

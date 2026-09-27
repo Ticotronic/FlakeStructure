@@ -6,6 +6,13 @@ import Quickshell.Wayland
 
 // One instance per screen (via Variants in shell.qml), visible only on the
 // screen that CalendarEvents.activeScreen currently points to.
+//
+// Handles three cases when saving/deleting:
+//   1. New event               -> CalendarEvents.addEvent (calendar: fCalendar)
+//   2. Edit of a LOCAL event    -> CalendarEvents.updateEvent/deleteEvent
+//   3. Edit of a NEXTCLOUD-NATIVE event (created outside Quickshell, or by
+//      another CalDAV client) -> CalendarEvents.updateNextcloudEvent/
+//      deleteNextcloudEventDirect, using its real UID, no local copy kept.
 PanelWindow {
     id: dialogWindow
     required property var modelData
@@ -43,6 +50,11 @@ PanelWindow {
         { label: "Jährlich", value: "yearly" }
     ]
 
+    readonly property var calendarOptions: [
+        { label: "Lokal (nur Quickshell)", value: "local" },
+        { label: "Nextcloud – Persönlich", value: "nextcloud" }
+    ]
+
     property string fTitle: ""
     property bool fAllDay: false
     property string fStartDate: ""
@@ -54,11 +66,22 @@ PanelWindow {
     property int fReminder: -1
     property string fRepeat: "none"
     property string fColor: colorChoices[0]
+    property string fCalendar: "nextcloud"
+
+    // Set by resetForm() when editing an event whose source is "nextcloud"
+    // AND that isn't just the echo of a local-pushed event (mergedEvents
+    // already filters those out, so any source==="nextcloud" entry here is
+    // guaranteed to be genuinely Nextcloud-native).
+    property bool editingIsNextcloudNative: false
+    property string editingNextcloudUid: ""
 
     readonly property var existingEvents: CalendarEvents.eventsForDate(CalendarEvents.selectedDate)
     readonly property bool isEditing: CalendarEvents.editingEventId !== ""
 
     function resetForm() {
+        editingIsNextcloudNative = false;
+        editingNextcloudUid = "";
+
         if (isEditing) {
             var evt = null;
             for (var i = 0; i < existingEvents.length; i++) {
@@ -76,9 +99,18 @@ PanelWindow {
                 fReminder = evt.reminder !== undefined ? evt.reminder : -1;
                 fRepeat = evt.repeat || "none";
                 fColor = evt.color || colorChoices[0];
+
+                if (evt.source === "nextcloud") {
+                    editingIsNextcloudNative = true;
+                    editingNextcloudUid = evt.uid || "";
+                    fCalendar = "nextcloud";
+                } else {
+                    fCalendar = evt.calendar || "nextcloud";
+                }
                 return;
             }
         }
+
         fTitle = "";
         fAllDay = false;
         fStartDate = CalendarEvents.selectedDate;
@@ -90,6 +122,7 @@ PanelWindow {
         fReminder = -1;
         fRepeat = "none";
         fColor = colorChoices[0];
+        fCalendar = "nextcloud";
     }
 
     onVisibleChanged: if (visible) resetForm()
@@ -107,9 +140,13 @@ PanelWindow {
             description: fDescription,
             reminder: fAllDay ? -1 : fReminder,
             repeat: fRepeat,
-            color: fColor
+            color: fColor,
+            calendar: fCalendar
         };
-        if (isEditing) {
+
+        if (dialogWindow.editingIsNextcloudNative) {
+            CalendarEvents.updateNextcloudEvent(dialogWindow.editingNextcloudUid, evt);
+        } else if (isEditing) {
             CalendarEvents.updateEvent(evt.id, evt);
         } else {
             CalendarEvents.addEvent(evt);
@@ -118,7 +155,12 @@ PanelWindow {
     }
 
     function remove() {
-        if (isEditing) CalendarEvents.deleteEvent(CalendarEvents.editingEventId);
+        if (!isEditing) { CalendarEvents.closeDialog(); return; }
+        if (dialogWindow.editingIsNextcloudNative) {
+            CalendarEvents.deleteNextcloudEventDirect(dialogWindow.editingNextcloudUid);
+        } else {
+            CalendarEvents.deleteEvent(CalendarEvents.editingEventId);
+        }
         CalendarEvents.closeDialog();
     }
 
@@ -132,7 +174,7 @@ PanelWindow {
         id: panel
         anchors.centerIn: parent
         width: 480
-        height: 620
+        height: 660
         color: "#1e1e2e"
         border.color: "#313244"
         border.width: 1
@@ -154,7 +196,9 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
-                    text: dialogWindow.isEditing ? "Termin bearbeiten" : "Neuer Termin"
+                    text: dialogWindow.isEditing
+                        ? (dialogWindow.editingIsNextcloudNative ? "☁ Nextcloud-Termin bearbeiten" : "Termin bearbeiten")
+                        : "Neuer Termin"
                     color: "#cdd6f4"
                     font.pixelSize: 18
                     font.bold: true
@@ -165,6 +209,24 @@ PanelWindow {
                     color: "#a6adc8"
                     font.pixelSize: 16
                     MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: CalendarEvents.closeDialog() }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "Kalender"; color: "#a6adc8"; font.pixelSize: 11 }
+                ComboBox {
+                    Layout.fillWidth: true
+                    // Once created, an event isn't "moved" between calendars
+                    // from here — only edited in place or deleted.
+                    enabled: !dialogWindow.isEditing
+                    model: dialogWindow.calendarOptions.map(function (o) { return o.label; })
+                    currentIndex: {
+                        for (var i = 0; i < dialogWindow.calendarOptions.length; i++)
+                            if (dialogWindow.calendarOptions[i].value === dialogWindow.fCalendar) return i;
+                        return 1;
+                    }
+                    onActivated: index => dialogWindow.fCalendar = dialogWindow.calendarOptions[index].value
                 }
             }
 
@@ -244,6 +306,14 @@ PanelWindow {
                     onActivated: index => dialogWindow.fRepeat = dialogWindow.repeatOptions[index].value
                 }
             }
+            Text {
+                Layout.fillWidth: true
+                visible: dialogWindow.editingIsNextcloudNative
+                text: "Hinweis: komplexe Wiederholungsregeln (z.B. \"jeden 2. Montag\") werden nur als einfache Grundfrequenz erkannt und beim Speichern entsprechend vereinfacht."
+                color: "#6c7086"
+                font.pixelSize: 10
+                wrapMode: Text.Wrap
+            }
 
             Row {
                 spacing: 6
@@ -259,7 +329,8 @@ PanelWindow {
                 }
             }
 
-            // Existing events on this day
+            // Existing events on this day — all editable/deletable now,
+            // regardless of origin.
             ListView {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(80, dialogWindow.existingEvents.length * 26)
@@ -270,12 +341,11 @@ PanelWindow {
                     Rectangle { width: 8; height: 8; radius: 4; color: modelData.color || "#74c7ec" }
                     Text { text: modelData.title; color: "#cdd6f4"; Layout.fillWidth: true; elide: Text.ElideRight }
                     Text {
-                        text: modelData.source === "nextcloud" ? "☁ Nextcloud" : "Bearbeiten"
-                        color: modelData.source === "nextcloud" ? "#6c7086" : "#89b4fa"
+                        text: (modelData.source === "nextcloud" ? "☁ " : "") + "Bearbeiten"
+                        color: "#89b4fa"
                         MouseArea {
                             anchors.fill: parent
-                            enabled: modelData.source !== "nextcloud"
-                            cursorShape: modelData.source !== "nextcloud" ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: CalendarEvents.openForEdit(modelData.id, dialogWindow.modelData)
                         }
                     }
