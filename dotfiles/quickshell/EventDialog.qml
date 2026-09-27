@@ -74,6 +74,7 @@ PanelWindow {
     // guaranteed to be genuinely Nextcloud-native).
     property bool editingIsNextcloudNative: false
     property string editingNextcloudUid: ""
+    property string editingNextcloudHref: ""
 
     readonly property var existingEvents: CalendarEvents.eventsForDate(CalendarEvents.selectedDate)
     readonly property bool isEditing: CalendarEvents.editingEventId !== ""
@@ -81,6 +82,7 @@ PanelWindow {
     function resetForm() {
         editingIsNextcloudNative = false;
         editingNextcloudUid = "";
+        editingNextcloudHref = "";
 
         if (isEditing) {
             var evt = null;
@@ -103,6 +105,7 @@ PanelWindow {
                 if (evt.source === "nextcloud") {
                     editingIsNextcloudNative = true;
                     editingNextcloudUid = evt.uid || "";
+                    editingNextcloudHref = evt.href || "";
                     fCalendar = "nextcloud";
                 } else {
                     fCalendar = evt.calendar || "nextcloud";
@@ -158,7 +161,7 @@ PanelWindow {
         };
 
         if (dialogWindow.editingIsNextcloudNative) {
-            CalendarEvents.updateNextcloudEvent(dialogWindow.editingNextcloudUid, evt);
+            CalendarEvents.updateNextcloudEvent(dialogWindow.editingNextcloudUid, dialogWindow.editingNextcloudHref, evt);
         } else if (isEditing) {
             CalendarEvents.updateEvent(evt.id, evt);
         } else {
@@ -170,7 +173,7 @@ PanelWindow {
     function remove() {
         if (!isEditing) { CalendarEvents.closeDialog(); return; }
         if (dialogWindow.editingIsNextcloudNative) {
-            CalendarEvents.deleteNextcloudEventDirect(dialogWindow.editingNextcloudUid);
+            CalendarEvents.deleteNextcloudEventDirect(dialogWindow.editingNextcloudUid, dialogWindow.editingNextcloudHref);
         } else {
             CalendarEvents.deleteEvent(CalendarEvents.editingEventId);
         }

@@ -92,16 +92,31 @@ Singleton {
 
     // ---- XML / iCalendar helpers -------------------------------------
 
-    function extractCalendarDataBlocks(xmlText) {
-        // Namespace-agnostic: matches <c:calendar-data ...>...</c:calendar-data>
-        // or <calendar-data ...>...</calendar-data>, case-insensitive tag names.
+    // A CalDAV REPORT reply is a <d:multistatus> of <d:response> elements,
+    // each pairing one <d:href> (the resource's real WebDAV path — NOT the
+    // same thing as the iCalendar UID inside it) with one <c:calendar-data>.
+    // We need both together per event: the href is what a PUT/DELETE must
+    // target for anything we didn't create ourselves, since a foreign
+    // client (e.g. Nextcloud's own web UI) picks its own resource name,
+    // unrelated to the VEVENT's UID property.
+    function extractResponseBlocks(xmlText) {
         var blocks = [];
-        var re = /<(?:[a-zA-Z0-9]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9]+:)?calendar-data>/gi;
+        var re = /<(?:[a-zA-Z0-9]+:)?response[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9]+:)?response>/gi;
         var match;
         while ((match = re.exec(xmlText)) !== null) {
-            blocks.push(nextcloudCalDAV.unescapeXml(match[1]));
+            blocks.push(match[1]);
         }
         return blocks;
+    }
+
+    function extractHref(responseXml) {
+        var m = responseXml.match(/<(?:[a-zA-Z0-9]+:)?href[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9]+:)?href>/i);
+        return m ? nextcloudCalDAV.unescapeXml(m[1]) : "";
+    }
+
+    function extractCalendarData(responseXml) {
+        var m = responseXml.match(/<(?:[a-zA-Z0-9]+:)?calendar-data[^>]*>([\s\S]*?)<\/(?:[a-zA-Z0-9]+:)?calendar-data>/i);
+        return m ? nextcloudCalDAV.unescapeXml(m[1]) : "";
     }
 
     function unescapeXml(s) {
@@ -206,10 +221,14 @@ Singleton {
 
     function parseResponse(xmlText) {
         var events = [];
-        var blocks = nextcloudCalDAV.extractCalendarDataBlocks(xmlText);
+        var responseBlocks = nextcloudCalDAV.extractResponseBlocks(xmlText);
 
-        for (var b = 0; b < blocks.length; b++) {
-            var lines = nextcloudCalDAV.unfoldIcs(blocks[b]);
+        for (var b = 0; b < responseBlocks.length; b++) {
+            var href = nextcloudCalDAV.extractHref(responseBlocks[b]);
+            var calData = nextcloudCalDAV.extractCalendarData(responseBlocks[b]);
+            if (!calData) continue;
+
+            var lines = nextcloudCalDAV.unfoldIcs(calData);
 
             // A single calendar-data block can contain several VEVENTs
             // (e.g. recurring exceptions). Split into VEVENT sections.
@@ -261,6 +280,7 @@ Singleton {
                 events.push({
                     id: "nc-" + uidField.value,
                     uid: uidField.value,
+                    href: href,
                     title: summaryField ? summaryField.value : "(ohne Titel)",
                     allDay: startInfo.allDay,
                     startDate: startInfo.date,

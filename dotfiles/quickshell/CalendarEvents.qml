@@ -106,15 +106,21 @@ Singleton {
     // (events with source === "nextcloud" that were never stored locally —
     // created directly in Nextcloud, not via this Quickshell config)
 
-    function updateNextcloudEvent(uid, evt) {
+    function updateNextcloudEvent(uid, href, evt) {
         var ics = calendarEvents.buildIcs(evt, uid);
-        Quickshell.execDetached(["nextcloud-caldav-push", "put", uid, ics]);
+        // Must target the event's real WebDAV resource path (href), which
+        // Nextcloud assigned when IT created this event — NOT a path we
+        // guess from the UID. Falls back to the (likely wrong) uid-guess
+        // only if href somehow wasn't captured on fetch.
+        var target = href && href.length > 0 ? href : uid;
+        Quickshell.execDetached(["nextcloud-caldav-push", "put", target, ics]);
         NextcloudCalDAV.patchRemoteEvent(uid, evt);
         calendarEvents.scheduleQuickRefetch();
     }
 
-    function deleteNextcloudEventDirect(uid) {
-        Quickshell.execDetached(["nextcloud-caldav-push", "delete", uid, ""]);
+    function deleteNextcloudEventDirect(uid, href) {
+        var target = href && href.length > 0 ? href : uid;
+        Quickshell.execDetached(["nextcloud-caldav-push", "delete", target, ""]);
         NextcloudCalDAV.removeRemoteEvent(uid);
         calendarEvents.scheduleQuickRefetch();
     }
