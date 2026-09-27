@@ -65,6 +65,7 @@ Item {
             if (visible) {
                 viewMonth = new Date().getMonth();
                 viewYear = new Date().getFullYear();
+                NextcloudCalDAV.fetchNow();
             }
         }
 
