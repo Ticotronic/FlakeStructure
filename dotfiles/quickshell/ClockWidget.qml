@@ -5,10 +5,6 @@ import Quickshell
 
 Item {
     id: clockWidget
-    implicitWidth: clockText.implicitWidth
-    implicitHeight: clockText.implicitHeight
-
-    // Von Bar.qml gesetzt: das PanelWindow, unter dem der Kalender erscheinen soll
     property var barWindow: null
     property bool calendarOpen: false
 
@@ -30,50 +26,41 @@ Item {
         onTriggered: clockWidget.currentText = clockWidget.formatNow()
     }
 
+    implicitWidth: clockText.implicitWidth + 16
+    implicitHeight: clockText.implicitHeight
+
     Text {
         id: clockText
         anchors.centerIn: parent
         text: clockWidget.currentText
         color: "#cdd6f4"
         font.pixelSize: 14
-        font.family: "Symbols Nerd Font"
     }
 
     MouseArea {
-        id: clockMouseArea
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         onClicked: clockWidget.calendarOpen = !clockWidget.calendarOpen
     }
 
-    // ==========================================
-    // Kalender-Popup unterhalb der Bar
-    // ==========================================
     PopupWindow {
         id: calendarPopup
         visible: clockWidget.calendarOpen
 
-        // Ankerpunkt: horizontale Mitte des ClockWidget als Punkt (Breite 0),
-        // damit der Popup unabhängig von seiner eigenen Breite exakt zentriert wird
         anchor.window: clockWidget.barWindow
         anchor.rect: Qt.rect(
             clockWidget.mapToItem(null, 0, 0).x + clockWidget.width / 2 - calendarPopup.implicitWidth / 2,
             clockWidget.barWindow ? clockWidget.barWindow.height : 0,
-            0,
-            0
+            0, 0
         )
         anchor.edges: Edges.Top
 
-        // Doppelte Größe gegenüber dem ursprünglichen Stand
         implicitWidth: 460
         implicitHeight: 420
-        color: "transparent"
 
-        // Aktuell angezeigter Monat/Jahr (0-11 wie bei JS Date)
         property int viewMonth: new Date().getMonth()
         property int viewYear: new Date().getFullYear()
 
-        // Beim Öffnen immer wieder auf den aktuellen Monat zurückspringen
         onVisibleChanged: {
             if (visible) {
                 viewMonth = new Date().getMonth();
@@ -84,37 +71,25 @@ Item {
         Rectangle {
             anchors.fill: parent
             color: "#1e1e2e"
-            radius: 12
             border.color: "#313244"
             border.width: 1
+            radius: 8
 
             ColumnLayout {
-                id: calendarColumn
                 anchors.fill: parent
-                anchors.margins: 24
-                spacing: 16
+                anchors.margins: 12
+                spacing: 8
 
-                // Monats-Navigation
                 RowLayout {
                     Layout.fillWidth: true
 
-                    Rectangle {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-                        radius: 6
-                        color: prevMonthArea.containsMouse ? "#313244" : "transparent"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "‹"
-                            color: "#cdd6f4"
-                            font.pixelSize: 22
-                        }
-
+                    Text {
+                        text: "‹"
+                        color: "#cdd6f4"
+                        font.pixelSize: 20
                         MouseArea {
-                            id: prevMonthArea
                             anchors.fill: parent
-                            hoverEnabled: true
+                            anchors.margins: -6
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (calendarPopup.viewMonth === 0) {
@@ -127,32 +102,24 @@ Item {
                         }
                     }
 
+                    Item { Layout.fillWidth: true }
+
                     Text {
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                        text: Qt.locale("de_DE").monthName(calendarPopup.viewMonth, Locale.LongFormat) + " " + calendarPopup.viewYear
+                        text: Qt.locale("de_DE").standaloneMonthName(calendarPopup.viewMonth) + " " + calendarPopup.viewYear
                         color: "#cdd6f4"
-                        font.pixelSize: 20
+                        font.pixelSize: 16
                         font.bold: true
                     }
 
-                    Rectangle {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-                        radius: 6
-                        color: nextMonthArea.containsMouse ? "#313244" : "transparent"
+                    Item { Layout.fillWidth: true }
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: "›"
-                            color: "#cdd6f4"
-                            font.pixelSize: 22
-                        }
-
+                    Text {
+                        text: "›"
+                        color: "#cdd6f4"
+                        font.pixelSize: 20
                         MouseArea {
-                            id: nextMonthArea
                             anchors.fill: parent
-                            hoverEnabled: true
+                            anchors.margins: -6
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (calendarPopup.viewMonth === 11) {
@@ -166,24 +133,19 @@ Item {
                     }
                 }
 
-                // Wochentags-Kopfzeile
                 DayOfWeekRow {
                     Layout.fillWidth: true
                     locale: Qt.locale("de_DE")
-
                     delegate: Text {
-                        required property string shortName
-                        text: shortName
-                        color: "#6c7086"
-                        font.pixelSize: 15
+                        text: model.shortName
+                        color: "#a6adc8"
                         horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                        font.pixelSize: 12
                     }
                 }
 
-                // Tage-Grid
                 MonthGrid {
-                    id: monthGrid
+                    id: grid
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     month: calendarPopup.viewMonth
@@ -192,43 +154,49 @@ Item {
 
                     delegate: Rectangle {
                         id: dayCell
-                        required property var model
-                        readonly property bool isCurrentMonth: model.month === monthGrid.month
                         readonly property string dateKey: Qt.formatDate(model.date, "yyyy-MM-dd")
-                        readonly property bool hasEvents: CalendarEvents.datesWithEvents[dateKey] === true
+                        readonly property var dayEvents: CalendarEvents.eventsForDate(dateKey)
+                        readonly property bool hasLocalEvents: dayEvents.some(function (e) { return e.source === "local"; })
+                        readonly property bool hasRemoteEvents: dayEvents.some(function (e) { return e.source === "nextcloud"; })
+                        readonly property bool isToday: dateKey === Qt.formatDate(new Date(), "yyyy-MM-dd")
 
-                        color: model.today ? "#a6e3a1" : (dayMouseArea.containsMouse ? "#313244" : "transparent")
-                        radius: 6
-                        opacity: isCurrentMonth ? 1 : 0.35
+                        width: grid.width / 7
+                        height: grid.height / 6
+                        color: isToday ? "#313244" : "transparent"
+                        radius: 4
 
-                        Text {
+                        Column {
                             anchors.centerIn: parent
-                            text: dayCell.model.day
-                            color: dayCell.model.today ? "#11111b" : "#cdd6f4"
-                            font.pixelSize: 16
-                            font.bold: dayCell.model.today
-                        }
+                            spacing: 2
 
-                        // Kleiner Marker-Punkt für Tage mit Terminen
-                        Rectangle {
-                            visible: dayCell.hasEvents
-                            width: 4; height: 4; radius: 2
-                            color: dayCell.model.today ? "#11111b" : "#f9e2af"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 3
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: model.day
+                                color: model.month === calendarPopup.viewMonth ? "#cdd6f4" : "#585b70"
+                                font.bold: dayCell.isToday
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 3
+                                Rectangle {
+                                    width: 5; height: 5; radius: 2.5
+                                    color: "#f9e2af"
+                                    visible: dayCell.hasLocalEvents
+                                }
+                                Rectangle {
+                                    width: 5; height: 5; radius: 2.5
+                                    color: "#74c7ec"
+                                    visible: dayCell.hasRemoteEvents
+                                }
+                            }
                         }
 
                         MouseArea {
-                            id: dayMouseArea
                             anchors.fill: parent
-                            hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (clockWidget.barWindow) {
-                                    CalendarEvents.openForDate(dayCell.dateKey, clockWidget.barWindow.screen);
-                                }
-                            }
+                            onClicked: CalendarEvents.openForDate(dayCell.dateKey, clockWidget.barWindow.screen)
                         }
                     }
                 }

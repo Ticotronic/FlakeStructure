@@ -42,6 +42,7 @@
   sops.age.sshKeyPaths = [ "/home/roljon/.ssh/id_ed25519" ];  
   sops.defaultSopsFile = ../secrets/passwords.yaml;
   sops.secrets."gmx_rj" = {};
+  sops.secrets."nextcloud_caldav" = {};
 
   accounts.email.accounts = {
     "r.jongebloed@gmx.de" = {
