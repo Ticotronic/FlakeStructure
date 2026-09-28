@@ -165,6 +165,17 @@ Singleton {
         return null;
     }
 
+    function pad2(n) {
+        return (n < 10 ? "0" : "") + n;
+    }
+
+    function addDaysToDateStr(dateStr, days) {
+        var parts = dateStr.split("-");
+        var d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+        d.setUTCDate(d.getUTCDate() + days);
+        return d.getUTCFullYear() + "-" + nextcloudCalDAV.pad2(d.getUTCMonth() + 1) + "-" + nextcloudCalDAV.pad2(d.getUTCDate());
+    }
+
     function parseIcsDateTime(raw, params) {
         // raw examples: "20260415" (all-day, VALUE=DATE),
         // "20260415T090000" (floating local time),
@@ -262,6 +273,21 @@ Singleton {
                 var endInfo = dtendField
                     ? nextcloudCalDAV.parseIcsDateTime(dtendField.value, dtendField.params)
                     : startInfo;
+
+                // RFC 5545: DTEND on an all-day event is EXCLUSIVE (the day
+                // AFTER the event actually ends). Our own model treats
+                // endDate as INCLUSIVE (the last day it covers) — buildIcs()
+                // already adds a day going out to Nextcloud, so mirror that
+                // coming back in. Without this, a Nextcloud-created one-day
+                // all-day event (DTSTART=28th, DTEND=29th) shows as spanning
+                // both the 28th and 29th.
+                if (startInfo.allDay && dtendField) {
+                    endInfo = {
+                        date: nextcloudCalDAV.addDaysToDateStr(endInfo.date, -1),
+                        time: "",
+                        allDay: true
+                    };
+                }
 
                 var repeatValue = "none";
                 if (rruleField) {
