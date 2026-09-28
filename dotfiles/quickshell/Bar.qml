@@ -24,17 +24,6 @@ PanelWindow {
         anchors.margins: 4
         spacing: 12
 
-        // Launcher
-        Rectangle {
-            width: 32; Layout.fillHeight: true; color: "#89b4fa"; radius: 4
-            Text { text: "󱓞"; font.family: "Symbols Nerd Font"; anchors.centerIn: parent }
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Quickshell.execDetached(["fuzzel"])
-            }
-        }
-
         LauncherButton {
             Layout.fillHeight: true
             barScreen: topBar.screen

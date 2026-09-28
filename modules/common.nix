@@ -49,7 +49,6 @@
   environment.systemPackages = with pkgs; [
 #    alacritty
     kitty
-    fuzzel
     git
     fastfetch
     brave
