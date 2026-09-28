@@ -55,8 +55,8 @@ Item {
         )
         anchor.edges: Edges.Top
 
-        implicitWidth: 460
-        implicitHeight: 420
+        implicitWidth: 620
+        implicitHeight: 480
 
         property int viewMonth: new Date().getMonth()
         property int viewYear: new Date().getFullYear()
@@ -156,42 +156,55 @@ Item {
                     delegate: Rectangle {
                         id: dayCell
                         readonly property string dateKey: Qt.formatDate(model.date, "yyyy-MM-dd")
-                        readonly property var dayEvents: CalendarEvents.eventsForDate(dateKey)
-                        readonly property bool hasLocalEvents: dayEvents.some(function (e) { return e.source === "local"; })
-                        readonly property bool hasRemoteEvents: dayEvents.some(function (e) { return e.source === "nextcloud"; })
+                        // Sorted so timed events show chronologically and
+                        // all-day events (no startTime) float to the top.
+                        readonly property var dayEvents: CalendarEvents.eventsForDate(dateKey).slice().sort(function (a, b) {
+                            return (a.startTime || "") < (b.startTime || "") ? -1 : 1;
+                        })
                         readonly property bool isToday: dateKey === Qt.formatDate(new Date(), "yyyy-MM-dd")
+                        readonly property int maxVisibleEvents: 3
 
                         width: grid.width / 7
                         height: grid.height / 6
                         color: isToday ? "#313244" : "transparent"
                         radius: 4
 
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 2
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            spacing: 1
 
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
+                                Layout.alignment: Qt.AlignHCenter
                                 text: model.day
                                 color: model.month === calendarPopup.viewMonth ? "#cdd6f4" : "#585b70"
                                 font.bold: dayCell.isToday
-                                horizontalAlignment: Text.AlignHCenter
+                                font.pixelSize: 11
                             }
 
-                            Row {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 3
-                                Rectangle {
-                                    width: 5; height: 5; radius: 2.5
-                                    color: "#f9e2af"
-                                    visible: dayCell.hasLocalEvents
-                                }
-                                Rectangle {
-                                    width: 5; height: 5; radius: 2.5
-                                    color: "#74c7ec"
-                                    visible: dayCell.hasRemoteEvents
+                            Repeater {
+                                model: dayCell.dayEvents.slice(0, dayCell.maxVisibleEvents)
+                                delegate: Text {
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: (modelData.allDay ? "" : (modelData.startTime || "") + " ")
+                                          + modelData.title.substring(0, 10)
+                                    color: modelData.color || "#89b4fa"
+                                    font.pixelSize: 9
+                                    elide: Text.ElideRight
+                                    horizontalAlignment: Text.AlignHCenter
                                 }
                             }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                visible: dayCell.dayEvents.length > dayCell.maxVisibleEvents
+                                text: "+" + (dayCell.dayEvents.length - dayCell.maxVisibleEvents)
+                                color: "#6c7086"
+                                font.pixelSize: 8
+                            }
+
+                            Item { Layout.fillHeight: true }
                         }
 
                         MouseArea {
