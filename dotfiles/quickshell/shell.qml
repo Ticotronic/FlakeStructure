@@ -203,9 +203,24 @@ ShellRoot {
     // Super+D { spawn "qs" "ipc" "call" "launcher" "show"; }
     IpcHandler {
         target: "launcher"
-        function show() {
-            // Öffnet auf dem ersten Screen als Fallback
-            LauncherMenu.show(Quickshell.screens[0]);
+        function show(): void {
+            // Öffnet auf dem Monitor, auf dem gerade der fokussierte
+            // Workspace liegt — nicht auf einem fest verdrahteten Screen.
+            // Sonst öffnet Super+D den Launcher unsichtbar auf einem
+            // Monitor, auf den man gerade gar nicht schaut.
+            var targetScreen = Quickshell.screens[0];
+            for (var i = 0; i < workspaceList.length; i++) {
+                if (workspaceList[i].is_focused) {
+                    for (var j = 0; j < Quickshell.screens.length; j++) {
+                        if (Quickshell.screens[j].name === workspaceList[i].output) {
+                            targetScreen = Quickshell.screens[j];
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            LauncherMenu.show(targetScreen);
         }
     }
 
