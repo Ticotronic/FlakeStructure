@@ -200,10 +200,17 @@ ShellRoot {
 
     // Shortcut zum Öffnen (Super+D)
     // Da IpcHandler bereits vorhanden: in Niri config ergänzen:
-    // Super+D { spawn "qs" "ipc" "call" "launcher" "show"; }
+    // Super+D { spawn "qs" "ipc" "call" "launcher" "open"; }
+    //
+    // Hinweis: Die Funktion darf NICHT "show" heißen — das kollidiert
+    // offenbar mit dem "qs ipc show"-Subcommand selbst: "qs ipc call
+    // launcher show" (mit oder ohne Argument) hat nie wirklich
+    // aufgerufen, sondern nur die Signatur ausgegeben bzw. Argumente
+    // mit "argument not expected" abgelehnt. Mit "open" statt "show"
+    // sollte der Namenskonflikt verschwinden.
     IpcHandler {
         target: "launcher"
-        function show(): void {
+        function open(): void {
             // Öffnet auf dem Monitor, auf dem gerade der fokussierte
             // Workspace liegt — nicht auf einem fest verdrahteten Screen.
             // Sonst öffnet Super+D den Launcher unsichtbar auf einem
