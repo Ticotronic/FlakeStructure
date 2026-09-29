@@ -11,6 +11,7 @@ ShellRoot {
     property var workspaceList: []
     property string wlanStatus: "Lade..."
     property string batStatus: "Lade..."
+    property bool batCharging: false
     property string ramStatus: "Lade..."
     property string cpuStatus: "Lade..."
 
@@ -72,11 +73,12 @@ ShellRoot {
         stdout: SplitParser {
             onRead: data => {
                 let parts = data.split("|");
-                if (parts.length === 4) {
-                    wlanStatus = parts[0];
-                    batStatus  = parts[1];
-                    ramStatus  = parts[2];
-                    cpuStatus  = parts[3];
+                if (parts.length === 5) {
+                    wlanStatus  = parts[0];
+                    batStatus   = parts[1];
+                    ramStatus   = parts[2];
+                    cpuStatus   = parts[3];
+                    batCharging = parts[4] === "1";
                 }
             }
         }

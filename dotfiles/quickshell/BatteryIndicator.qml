@@ -4,10 +4,12 @@ import QtQuick
 // - Füllfarbe hängt vom Prozentwert ab (grün / gelb / rot)
 // - Unter 20% wird die Anzeige rot
 // - Unter 10% blinkt die Anzeige zusätzlich
+// - Beim Laden erscheint ein kleines Blitz-Symbol im Batteriekörper
 Item {
     id: root
 
     property int percent: 100
+    property bool charging: false
 
     readonly property int clampedPercent: Math.min(100, Math.max(0, percent))
 
@@ -57,6 +59,18 @@ Item {
 
                     Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
                     Behavior on color { ColorAnimation { duration: 300 } }
+                }
+
+                // Blitz-Symbol, solange der Akku lädt (liegt über dem Füllbalken)
+                // Unicode-Escape statt Literalzeichen, damit das PUA-Glyph
+                // (nf-fa-bolt) beim Kopieren/Speichern nicht verloren geht.
+                Text {
+                    visible: root.charging
+                    anchors.centerIn: parent
+                    font.family: "Symbols Nerd Font"
+                    font.pixelSize: 10
+                    color: "#1e1e2e"
+                    text: ""
                 }
             }
 

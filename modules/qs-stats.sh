@@ -25,15 +25,23 @@ while true; do
     # Akku (Sucht nach der Batterie, nimmt den ersten Treffer)
     BAT=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n 1)
     [ -z "$BAT" ] && BAT="100" # Fallback, falls mal kein Akku gefunden wird
-    
+
+    # Lädt der Akku gerade? ("Charging" laut sysfs-Status)
+    BAT_STATUS=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n 1)
+    if [ "$BAT_STATUS" = "Charging" ]; then
+        CHARGING="1"
+    else
+        CHARGING="0"
+    fi
+
     # RAM (Verwendet in GB)
     RAM=$(free -m | awk '/^Speicher:/ {printf "%.1f%%", $3/$2 * 100}')
-    
+
     # CPU (Gesamtauslastung in Prozent)
     CPU=$(top -bn1 | grep -i "Cpu(s)" | awk '{printf "%.0f%%", $2 + $4}')
-    
+
     # Ausgabe mit | getrennt, damit QML es leicht parsen kann
-    echo "$WLAN|$BAT%|$RAM|$CPU"
+    echo "$WLAN|$BAT%|$RAM|$CPU|$CHARGING"
     
     # 2 Sekunden warten, dann von vorn
     sleep 2
