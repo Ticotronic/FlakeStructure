@@ -94,6 +94,20 @@
         export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
         ${builtins.readFile ./nextcloud-caldav-push-body.sh}
     '')
+
+    (pkgs.writeShellScriptBin "nextcloud-tasks-discover" ''
+      export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
+      export NEXTCLOUD_USERNAME="roljon"
+      export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
+      ${builtins.readFile ./nextcloud-tasks-discover-body.sh}
+    '')
+
+    (pkgs.writeShellScriptBin "nextcloud-tasks-fetch" ''
+      export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
+      export NEXTCLOUD_USERNAME="roljon"
+      export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
+      ${builtins.readFile ./nextcloud-tasks-fetch-body.sh}
+    '')
   ];
 
   xdg.configFile."quickshell".source = ../dotfiles/quickshell;

@@ -59,6 +59,19 @@ PanelWindow {
             vpnName: "wg0"  // deinen Interface-Namen anpassen
         }
 
+        // Trennlinie
+        Rectangle {
+            width: 1; Layout.fillHeight: true
+            color: "#313244"
+            Layout.topMargin: 4
+            Layout.bottomMargin: 4
+        }
+
+        TasksButton {
+            Layout.fillHeight: true
+            barWindow: topBar
+        }
+
         Item { Layout.fillWidth: true }
 
         StatusIcons {}
