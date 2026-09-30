@@ -34,8 +34,8 @@ while true; do
         CHARGING="0"
     fi
 
-    # RAM (Verwendet in GB)
-    RAM=$(free -m | awk '/^Speicher:/ {printf "%.1f%%", $3/$2 * 100}')
+    # RAM (belegt/gesamt in GB, z.B. "12.3/31.9")
+    RAM=$(free -m | awk '/^Speicher:/ {printf "%.1f/%.1f", $3/1024, $2/1024}')
 
     # CPU (Gesamtauslastung in Prozent)
     CPU=$(top -bn1 | grep -i "Cpu(s)" | awk '{printf "%.0f%%", $2 + $4}')

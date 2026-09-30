@@ -11,6 +11,6 @@ RowLayout {
         percent: isNaN(parseInt(batStatus)) ? 100 : parseInt(batStatus)
         charging: batCharging
     }
-    Text { color: "#cdd6f4"; font.pixelSize: 14; font.family: "Symbols Nerd Font"; text: "󰍛 " + ramStatus }
+    RamIndicator { ramText: ramStatus }
     Text { color: "#cdd6f4"; font.pixelSize: 14; font.family: "Symbols Nerd Font"; text: "󰘚 " + cpuStatus }
 }
