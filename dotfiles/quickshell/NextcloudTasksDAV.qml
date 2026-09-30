@@ -3,10 +3,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Read-only CalDAV client fuer VTODO-Aufgaben (Stufe 1: nur lesen,
-// analog zur ersten Ausbaustufe von NextcloudCalDAV.qml fuer Termine).
+// CalDAV client fuer VTODO-Aufgaben.
 //
-// Ablauf pro Aktualisierung:
+// Lesen (Stufe 1):
 //  1. "nextcloud-tasks-discover" listet per PROPFIND alle Kalender-
 //     sammlungen im Calendar-Home des Nutzers auf. Wir filtern die
 //     heraus, die VTODO unterstuetzen (= Task-Listen) -> taskLists.
@@ -15,13 +14,56 @@ import Quickshell.Io
 //     Markerzeile vor jedem Abschnitt, damit jede Aufgabe ihrer
 //     Ursprungsliste zugeordnet werden kann.
 //
-// Schreiben (anlegen/bearbeiten/erledigen/loeschen) folgt in Stufe 2.
+// Schreiben (Stufe 2, analog zu NextcloudCalDAV.qml/CalendarEvents.qml):
+//  - createTask/updateTask/deleteTask stossen "nextcloud-tasks-push" (PUT
+//    bzw. DELETE) fire-and-forget an (Quickshell.execDetached), patchen den
+//    lokalen "tasks"-Zustand optimistisch fuer eine sofort reagierende UI,
+//    und stossen kurz danach ein echtes Re-Fetch an, damit der optimistische
+//    Stand mit dem tatsaechlich vom Server akzeptierten Stand abgeglichen
+//    wird.
+//  - Beim Anlegen waehlen WIR den Dateinamen (href = listHref + uid + ".ics"),
+//    beim Bearbeiten/Loeschen wird immer der echte, beim Fetch gelieferte
+//    href verwendet (siehe extractHref) - NIE ein aus der UID geratener Pfad.
 Singleton {
     id: tasksDav
 
     property var taskLists: []   // [{ href, name }]
     property var tasks: []       // geparste VTODOs, siehe parseTasksXml()
     property bool lastFetchFailed: false
+
+    // ---- Dialog-Zustand (TaskDialog.qml, geteilt ueber alle Screens) ----
+
+    property bool dialogVisible: false
+    property var activeScreen: null
+    property string editingTaskUid: ""   // "" => neue Aufgabe anlegen
+    property string selectedListHref: "" // Vorauswahl fuer eine neue Aufgabe
+
+    function openForCreate(listHref, screen) {
+        tasksDav.editingTaskUid = "";
+        tasksDav.selectedListHref = listHref && listHref.length > 0
+            ? listHref
+            : (tasksDav.taskLists.length > 0 ? tasksDav.taskLists[0].href : "");
+        tasksDav.activeScreen = screen;
+        tasksDav.dialogVisible = true;
+    }
+
+    function openForEdit(uid, screen) {
+        tasksDav.editingTaskUid = uid;
+        tasksDav.activeScreen = screen;
+        tasksDav.dialogVisible = true;
+    }
+
+    function closeDialog() {
+        tasksDav.dialogVisible = false;
+        tasksDav.activeScreen = null;
+    }
+
+    function findTask(uid) {
+        for (var i = 0; i < tasksDav.tasks.length; i++) {
+            if (tasksDav.tasks[i].uid === uid) return tasksDav.tasks[i];
+        }
+        return null;
+    }
 
     Timer {
         interval: 600000 // 10 Minuten
@@ -99,6 +141,169 @@ Singleton {
                 tasksDav.lastFetchFailed = true;
             }
         }
+    }
+
+    // ---- Optimistisches lokales Patchen (analog zu NextcloudCalDAV.qml) --
+
+    function patchRemoteTask(uid, href, listHref, listName, fields) {
+        var list = tasksDav.tasks.slice();
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].uid === uid) {
+                list[i] = Object.assign({}, list[i], fields, { href: href, listHref: listHref, listName: listName });
+                tasksDav.tasks = list;
+                return;
+            }
+        }
+        // Neu angelegte Aufgabe: taucht erst nach dem naechsten Fetch aus dem
+        // REPORT auf, bis dahin haengen wir sie selbst vorne an.
+        list.push(Object.assign({
+            id: "nc-task-" + uid,
+            uid: uid,
+            href: href,
+            listHref: listHref,
+            listName: listName
+        }, fields));
+        tasksDav.tasks = list;
+    }
+
+    function removeRemoteTask(uid) {
+        tasksDav.tasks = tasksDav.tasks.filter(function (t) { return t.uid !== uid; });
+    }
+
+    Timer {
+        id: quickRefetchTimer
+        interval: 2000
+        repeat: false
+        onTriggered: tasksDav.fetchNow()
+    }
+    function scheduleQuickRefetch() {
+        quickRefetchTimer.restart();
+    }
+
+    // ---- CRUD --------------------------------------------------------
+
+    // fields: { title, description, completed, dueDate, dueTime, priority }
+    function createTask(listHref, fields) {
+        if (!listHref) return;
+        var uid = tasksDav.newUid();
+        var href = listHref + uid + ".ics";
+        var listName = "";
+        for (var i = 0; i < tasksDav.taskLists.length; i++) {
+            if (tasksDav.taskLists[i].href === listHref) { listName = tasksDav.taskLists[i].name; break; }
+        }
+        var ics = tasksDav.buildVTodoIcs(fields, uid);
+        Quickshell.execDetached(["nextcloud-tasks-push", "put", href, ics]);
+        tasksDav.patchRemoteTask(uid, href, listHref, listName, {
+            title: fields.title,
+            description: fields.description || "",
+            completed: !!fields.completed,
+            dueDate: fields.dueDate || "",
+            dueTime: fields.dueTime || "",
+            priority: fields.priority || 0
+        });
+        tasksDav.scheduleQuickRefetch();
+    }
+
+    function updateTask(uid, href, listHref, listName, fields) {
+        var target = href && href.length > 0 ? href : (listHref + uid + ".ics");
+        var ics = tasksDav.buildVTodoIcs(fields, uid);
+        Quickshell.execDetached(["nextcloud-tasks-push", "put", target, ics]);
+        tasksDav.patchRemoteTask(uid, target, listHref, listName, {
+            title: fields.title,
+            description: fields.description || "",
+            completed: !!fields.completed,
+            dueDate: fields.dueDate || "",
+            dueTime: fields.dueTime || "",
+            priority: fields.priority || 0
+        });
+        tasksDav.scheduleQuickRefetch();
+    }
+
+    // Bequemlichkeitsfunktion fuer den Checkbox-Klick in TasksWidget.qml -
+    // erledigt/wiedereroeffnet eine Aufgabe, ohne den Dialog zu oeffnen.
+    function setCompleted(task, completed) {
+        tasksDav.updateTask(task.uid, task.href, task.listHref, task.listName, {
+            title: task.title,
+            description: task.description,
+            completed: completed,
+            dueDate: task.dueDate,
+            dueTime: task.dueTime,
+            priority: task.priority
+        });
+    }
+
+    function deleteTask(uid, href) {
+        Quickshell.execDetached(["nextcloud-tasks-push", "delete", href, ""]);
+        tasksDav.removeRemoteTask(uid);
+        tasksDav.scheduleQuickRefetch();
+    }
+
+    // ---- iCalendar-Erzeugung (VTODO) ----------------------------------
+
+    function newUid() {
+        return "quickshell-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+    }
+
+    function escapeIcsText(s) {
+        return String(s)
+            .replace(/\\/g, "\\\\")
+            .replace(/;/g, "\\;")
+            .replace(/,/g, "\\,")
+            .replace(/\n/g, "\\n");
+    }
+
+    function pad2(n) {
+        return (n < 10 ? "0" : "") + n;
+    }
+
+    function nowIcsUtc() {
+        var d = new Date();
+        return d.getUTCFullYear() + tasksDav.pad2(d.getUTCMonth() + 1) + tasksDav.pad2(d.getUTCDate()) + "T" +
+               tasksDav.pad2(d.getUTCHours()) + tasksDav.pad2(d.getUTCMinutes()) + tasksDav.pad2(d.getUTCSeconds()) + "Z";
+    }
+
+    function toIcsUtc(dateStr, timeStr) {
+        // Interpretiert dateStr/timeStr als lokale Wanduhrzeit (System-TZ)
+        // und formatiert als UTC - vermeidet VTIMEZONE/TZID komplett,
+        // genau wie CalendarEvents.qml das fuer Termine macht.
+        var d = new Date(dateStr + "T" + (timeStr || "00:00") + ":00");
+        return d.getUTCFullYear() + tasksDav.pad2(d.getUTCMonth() + 1) + tasksDav.pad2(d.getUTCDate()) + "T" +
+               tasksDav.pad2(d.getUTCHours()) + tasksDav.pad2(d.getUTCMinutes()) + "00Z";
+    }
+
+    function buildVTodoIcs(task, uid) {
+        var lines = [];
+        lines.push("BEGIN:VCALENDAR");
+        lines.push("VERSION:2.0");
+        lines.push("PRODID:-//quickshell//tasks//DE");
+        lines.push("BEGIN:VTODO");
+        lines.push("UID:" + uid);
+        lines.push("DTSTAMP:" + tasksDav.nowIcsUtc());
+        lines.push("SUMMARY:" + tasksDav.escapeIcsText(task.title));
+        if (task.description) lines.push("DESCRIPTION:" + tasksDav.escapeIcsText(task.description));
+
+        if (task.dueDate) {
+            if (task.dueTime) {
+                lines.push("DUE:" + tasksDav.toIcsUtc(task.dueDate, task.dueTime));
+            } else {
+                lines.push("DUE;VALUE=DATE:" + task.dueDate.replace(/-/g, ""));
+            }
+        }
+
+        if (task.priority) lines.push("PRIORITY:" + task.priority);
+
+        if (task.completed) {
+            lines.push("STATUS:COMPLETED");
+            lines.push("PERCENT-COMPLETE:100");
+            lines.push("COMPLETED:" + tasksDav.nowIcsUtc());
+        } else {
+            lines.push("STATUS:NEEDS-ACTION");
+            lines.push("PERCENT-COMPLETE:0");
+        }
+
+        lines.push("END:VTODO");
+        lines.push("END:VCALENDAR");
+        return lines.join("\r\n") + "\r\n";
     }
 
     // ---- XML / iCalendar Hilfsfunktionen --------------------------------

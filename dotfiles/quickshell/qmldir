@@ -31,4 +31,5 @@ singleton NextcloudCalDAV 1.0 NextcloudCalDAV.qml
 
 TasksButton 1.0 TasksButton.qml
 TasksWidget 1.0 TasksWidget.qml
+TaskDialog 1.0 TaskDialog.qml
 singleton NextcloudTasksDAV 1.0 NextcloudTasksDAV.qml

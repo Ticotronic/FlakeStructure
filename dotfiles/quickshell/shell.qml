@@ -245,6 +245,12 @@ ShellRoot {
         delegate: EventDialog {}
     }
 
+    // Aufgaben-Dialog-Fenster pro Monitor
+    Variants {
+        model: Quickshell.screens
+        delegate: TaskDialog {}
+    }
+
     // Toast-Benachrichtigung für Termin-Erinnerungen (nur einmal, nicht pro Monitor)
     ReminderToastArea {}
 }

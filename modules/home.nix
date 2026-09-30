@@ -108,6 +108,13 @@
       export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
       ${builtins.readFile ./nextcloud-tasks-fetch-body.sh}
     '')
+
+    (pkgs.writeShellScriptBin "nextcloud-tasks-push" ''
+      export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
+      export NEXTCLOUD_USERNAME="roljon"
+      export NEXTCLOUD_PASSWORD_FILE="${config.sops.secrets."nextcloud_caldav".path}"
+      ${builtins.readFile ./nextcloud-tasks-push-body.sh}
+    '')
   ];
 
   xdg.configFile."quickshell".source = ../dotfiles/quickshell;

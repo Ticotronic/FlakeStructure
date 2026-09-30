@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 
-// Popup mit der Aufgabenliste (Stufe 1: nur Anzeige/Lesen).
-// Anlegen/Bearbeiten/Erledigen/Loeschen folgt in Stufe 2.
+// Popup mit der Aufgabenliste.
+// Checkbox-Klick erledigt/eroeffnet eine Aufgabe direkt; Klick auf den Titel
+// oeffnet TaskDialog.qml zum Bearbeiten; "+ Neu" legt eine neue Aufgabe an.
 PopupWindow {
     id: tasksPopup
 
@@ -78,6 +79,21 @@ PopupWindow {
                 }
 
                 Text {
+                    text: "+ Neu"
+                    color: "#a6e3a1"
+                    font.pixelSize: 11
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var defaultList = NextcloudTasksDAV.taskLists.length > 0 ? NextcloudTasksDAV.taskLists[0].href : "";
+                            NextcloudTasksDAV.openForCreate(defaultList, tasksPopup.anchorWindow.screen);
+                            tasksPopup.closeRequested();
+                        }
+                    }
+                }
+
+                Text {
                     text: "Aktualisieren"
                     color: "#89b4fa"
                     font.pixelSize: 11
@@ -142,6 +158,12 @@ PopupWindow {
                         text: modelData.completed ? "☑" : "☐"
                         color: modelData.completed ? "#6c7086" : "#cdd6f4"
                         font.pixelSize: 14
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: NextcloudTasksDAV.setCompleted(modelData, !modelData.completed)
+                        }
                     }
 
                     ColumnLayout {
@@ -162,6 +184,15 @@ PopupWindow {
                             text: modelData.listName
                             color: "#6c7086"
                             font.pixelSize: 10
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                NextcloudTasksDAV.openForEdit(modelData.uid, tasksPopup.anchorWindow.screen);
+                                tasksPopup.closeRequested();
+                            }
                         }
                     }
 
