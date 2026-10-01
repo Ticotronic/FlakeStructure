@@ -42,6 +42,12 @@ PopupWindow {
     // eingeblendet sind.
     property var expandedUids: ({})
 
+    function expandUid(uid) {
+        var copy = Object.assign({}, tasksPopup.expandedUids);
+        copy[uid] = true;
+        tasksPopup.expandedUids = copy;
+    }
+
     function toggleExpanded(uid) {
         var copy = Object.assign({}, tasksPopup.expandedUids);
         copy[uid] = !copy[uid];
@@ -305,11 +311,22 @@ PopupWindow {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 // Elternaufgabe aufklappen, damit die neue Teilaufgabe sichtbar ist
-                                var copy = Object.assign({}, tasksPopup.expandedUids);
-                                copy[modelData.uid] = true;
-                                tasksPopup.expandedUids = copy;
-                                NextcloudTasksDAV.openForCreate(modelData.listHref, tasksPopup.anchorWindow.screen, modelData.uid);
+                                // Werte VOR dem Aendern von expandedUids sichern: das
+                                // erzeugt eine neue displayRows-Liste, das ListView
+                                // baut seine Delegates neu auf, und modelData ist in
+                                // diesem (dann zerstoerten) Delegate danach undefined.
+                                var parentUid = modelData.uid;
+                                var parentListHref = modelData.listHref;
+                                var screen = tasksPopup.anchorWindow.screen;
+
+                                NextcloudTasksDAV.openForCreate(parentListHref, screen, parentUid);
                                 tasksPopup.closeRequested();
+
+                                // Als Allerletztes und verzoegert: das Aufklappen
+                                // baut die Delegates neu auf; danach darf in diesem
+                                // Delegate nichts mehr laufen (sonst z.B.
+                                // "tasksPopup is not defined").
+                                Qt.callLater(tasksPopup.expandUid, parentUid);
                             }
                         }
                     }
