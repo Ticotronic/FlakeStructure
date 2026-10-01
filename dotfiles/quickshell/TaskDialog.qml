@@ -80,6 +80,62 @@ PanelWindow {
     readonly property var creatingParent: dialogWindow.isSubtaskCreate ? NextcloudTasksDAV.findTask(NextcloudTasksDAV.creatingParentUid) : null
     readonly property var editingTask: dialogWindow.isEditing ? NextcloudTasksDAV.findTask(NextcloudTasksDAV.editingTaskUid) : null
 
+    // ---- Faelligkeitsdatum-Auswahl (wie in der Tasks-App: Schnellwahl +
+    // Monatskalender) ----
+
+    property bool showCalendar: false
+    property int shownYear: new Date().getFullYear()
+    property int shownMonth: new Date().getMonth() // 0-11
+
+    readonly property var monthNames: ["Januar", "Februar", "März", "April", "Mai", "Juni",
+                                       "Juli", "August", "September", "Oktober", "November", "Dezember"]
+    readonly property var weekdayNames: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+    function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+    function dateToStr(d) {
+        return d.getFullYear() + "-" + dialogWindow.pad2(d.getMonth() + 1) + "-" + dialogWindow.pad2(d.getDate());
+    }
+
+    function offsetDateStr(days) {
+        var d = new Date();
+        d.setDate(d.getDate() + days);
+        return dialogWindow.dateToStr(d);
+    }
+
+    function syncShownMonth() {
+        var d = dialogWindow.fHasDueDate && dialogWindow.fDueDate.length === 10
+            ? new Date(dialogWindow.fDueDate + "T00:00:00")
+            : new Date();
+        if (isNaN(d.getTime())) d = new Date();
+        dialogWindow.shownYear = d.getFullYear();
+        dialogWindow.shownMonth = d.getMonth();
+    }
+
+    function setDue(str) {
+        dialogWindow.fDueDate = str;
+        dialogWindow.fHasDueDate = true;
+        dialogWindow.syncShownMonth();
+    }
+
+    function clearDue() {
+        dialogWindow.fHasDueDate = false;
+        dialogWindow.fHasDueTime = false;
+        dialogWindow.showCalendar = false;
+    }
+
+    function shiftMonth(delta) {
+        var d = new Date(dialogWindow.shownYear, dialogWindow.shownMonth + delta, 1);
+        dialogWindow.shownYear = d.getFullYear();
+        dialogWindow.shownMonth = d.getMonth();
+    }
+
+    // Datum der Kalenderzelle i (0-41), Woche beginnt am Montag
+    function cellDate(i) {
+        var startOffset = (new Date(dialogWindow.shownYear, dialogWindow.shownMonth, 1).getDay() + 6) % 7;
+        return new Date(dialogWindow.shownYear, dialogWindow.shownMonth, 1 - startOffset + i);
+    }
+
     function todayStr() {
         var d = new Date();
         return d.getFullYear() + "-" + (d.getMonth() + 1 < 10 ? "0" : "") + (d.getMonth() + 1) + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
@@ -98,6 +154,8 @@ PanelWindow {
             fCompleted = !!t.completed;
             fListHref = t.listHref;
             fTags = (t.tags || []).slice();
+            dialogWindow.showCalendar = false;
+            dialogWindow.syncShownMonth();
             return;
         }
 
@@ -111,6 +169,8 @@ PanelWindow {
         fCompleted = false;
         fListHref = NextcloudTasksDAV.selectedListHref;
         fTags = [];
+        dialogWindow.showCalendar = false;
+        dialogWindow.syncShownMonth();
     }
 
     onVisibleChanged: if (visible) resetForm()
@@ -168,7 +228,7 @@ PanelWindow {
         id: panel
         anchors.centerIn: parent
         width: 420
-        height: 610
+        height: 610 + (dialogWindow.fHasDueDate && dialogWindow.showCalendar ? 220 : 0)
         color: "#1e1e2e"
         border.color: "#313244"
         border.width: 1
@@ -248,29 +308,177 @@ PanelWindow {
                 wrapMode: TextArea.Wrap
             }
 
-            RowLayout {
-                Text { text: "Fälligkeit"; color: "#cdd6f4" }
-                Switch { checked: dialogWindow.fHasDueDate; onCheckedChanged: dialogWindow.fHasDueDate = checked }
-                Item { Layout.fillWidth: true }
-            }
-
-            RowLayout {
+            ColumnLayout {
                 Layout.fillWidth: true
-                visible: dialogWindow.fHasDueDate
-                spacing: 8
-                TextField {
+                spacing: 6
+
+                RowLayout {
                     Layout.fillWidth: true
-                    text: dialogWindow.fDueDate
-                    onTextChanged: dialogWindow.fDueDate = text
-                    placeholderText: "YYYY-MM-DD"
+                    Text { text: "Fälligkeit"; color: "#a6adc8"; font.pixelSize: 11 }
+                    Text {
+                        visible: dialogWindow.fHasDueDate && dialogWindow.fDueDate.length === 10
+                        text: dialogWindow.fHasDueDate && dialogWindow.fDueDate.length === 10
+                            ? Qt.formatDate(new Date(dialogWindow.fDueDate + "T00:00:00"), "ddd, dd.MM.yyyy")
+                            : ""
+                        color: "#cdd6f4"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+                    Item { Layout.fillWidth: true }
                 }
-                Switch { checked: dialogWindow.fHasDueTime; onCheckedChanged: dialogWindow.fHasDueTime = checked }
-                TextField {
-                    Layout.preferredWidth: 80
-                    visible: dialogWindow.fHasDueTime
-                    text: dialogWindow.fDueTime
-                    onTextChanged: dialogWindow.fDueTime = text
-                    placeholderText: "HH:MM"
+
+                // Schnellwahl wie in der App
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Repeater {
+                        model: [
+                            { label: "Kein Datum",   kind: "none" },
+                            { label: "Heute",        kind: "day", days: 0 },
+                            { label: "Morgen",       kind: "day", days: 1 },
+                            { label: "Übermorgen",   kind: "day", days: 2 },
+                            { label: "Nächste Woche", kind: "day", days: 7 },
+                            { label: "Datum wählen…", kind: "pick" }
+                        ]
+
+                        Rectangle {
+                            readonly property bool active: modelData.kind === "none"
+                                ? !dialogWindow.fHasDueDate
+                                : (modelData.kind === "day"
+                                    ? (dialogWindow.fHasDueDate && dialogWindow.fDueDate === dialogWindow.offsetDateStr(modelData.days))
+                                    : dialogWindow.showCalendar)
+                            height: 24
+                            width: chipLabel.implicitWidth + 18
+                            radius: 12
+                            color: active ? "#89b4fa" : "#313244"
+
+                            Text {
+                                id: chipLabel
+                                anchors.centerIn: parent
+                                text: modelData.label
+                                color: parent.active ? "#1e1e2e" : "#cdd6f4"
+                                font.pixelSize: 11
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (modelData.kind === "none") dialogWindow.clearDue();
+                                    else if (modelData.kind === "day") dialogWindow.setDue(dialogWindow.offsetDateStr(modelData.days));
+                                    else {
+                                        if (!dialogWindow.fHasDueDate) dialogWindow.setDue(dialogWindow.todayStr());
+                                        dialogWindow.showCalendar = !dialogWindow.showCalendar;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Monatskalender
+                Rectangle {
+                    Layout.fillWidth: true
+                    visible: dialogWindow.fHasDueDate && dialogWindow.showCalendar
+                    implicitHeight: calColumn.implicitHeight + 16
+                    radius: 8
+                    color: "#181825"
+                    border.color: "#313244"
+                    border.width: 1
+
+                    ColumnLayout {
+                        id: calColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 8
+                        spacing: 4
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text {
+                                text: "‹"
+                                color: "#89b4fa"
+                                font.pixelSize: 18
+                                MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: dialogWindow.shiftMonth(-1) }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                                text: dialogWindow.monthNames[dialogWindow.shownMonth] + " " + dialogWindow.shownYear
+                                color: "#cdd6f4"
+                                font.pixelSize: 13
+                                font.bold: true
+                            }
+                            Text {
+                                text: "›"
+                                color: "#89b4fa"
+                                font.pixelSize: 18
+                                MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: dialogWindow.shiftMonth(1) }
+                            }
+                        }
+
+                        Grid {
+                            Layout.alignment: Qt.AlignHCenter
+                            columns: 7
+                            rowSpacing: 2
+                            columnSpacing: 2
+
+                            Repeater {
+                                model: dialogWindow.weekdayNames
+                                Item {
+                                    width: 34; height: 18
+                                    Text { anchors.centerIn: parent; text: modelData; color: "#6c7086"; font.pixelSize: 10 }
+                                }
+                            }
+
+                            Repeater {
+                                model: 42
+                                Rectangle {
+                                    readonly property var cellD: dialogWindow.cellDate(index)
+                                    readonly property string cellStr: dialogWindow.dateToStr(cellD)
+                                    readonly property bool inMonth: cellD.getMonth() === dialogWindow.shownMonth
+                                    readonly property bool selected: dialogWindow.fHasDueDate && dialogWindow.fDueDate === cellStr
+                                    readonly property bool isToday: cellStr === dialogWindow.todayStr()
+                                    width: 34; height: 24
+                                    radius: 12
+                                    color: selected ? "#89b4fa" : "transparent"
+                                    border.width: (isToday && !selected) ? 1 : 0
+                                    border.color: "#89b4fa"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: parent.cellD.getDate()
+                                        color: parent.selected ? "#1e1e2e" : (parent.inMonth ? "#cdd6f4" : "#45475a")
+                                        font.pixelSize: 11
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: dialogWindow.setDue(parent.cellStr)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: dialogWindow.fHasDueDate
+                    spacing: 8
+                    Text { text: "Uhrzeit"; color: "#a6adc8"; font.pixelSize: 11 }
+                    Switch { checked: dialogWindow.fHasDueTime; onCheckedChanged: dialogWindow.fHasDueTime = checked }
+                    TextField {
+                        Layout.preferredWidth: 80
+                        visible: dialogWindow.fHasDueTime
+                        text: dialogWindow.fDueTime
+                        onTextChanged: dialogWindow.fDueTime = text
+                        placeholderText: "HH:MM"
+                    }
+                    Item { Layout.fillWidth: true }
                 }
             }
 
