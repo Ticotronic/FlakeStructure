@@ -5,6 +5,12 @@ import Quickshell
 // Popup mit der Aufgabenliste.
 // Checkbox-Klick erledigt/eroeffnet eine Aufgabe direkt; Klick auf den Titel
 // oeffnet TaskDialog.qml zum Bearbeiten; "+ Neu" legt eine neue Aufgabe an.
+//
+// Teilaufgaben (CalDAV: RELATED-TO auf die UID der Hauptaufgabe, siehe
+// NextcloudTasksDAV.qml) werden unter ihrer Hauptaufgabe eingerueckt und nur
+// angezeigt, wenn die Hauptaufgabe ausgeklappt ist (expandedUids). Der
+// Aufklapp-Zustand lebt nur hier in der UI, nicht in NextcloudTasksDAV -
+// er ist reine Anzeigesache und muss nicht mit dem Server abgeglichen werden.
 PopupWindow {
     id: tasksPopup
 
@@ -32,25 +38,88 @@ PopupWindow {
         return d.getFullYear() + "-" + (d.getMonth() + 1 < 10 ? "0" : "") + (d.getMonth() + 1) + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
     }
 
-    readonly property var sortedTasks: {
+    // uid -> true fuer jede Hauptaufgabe, deren Teilaufgaben gerade
+    // eingeblendet sind.
+    property var expandedUids: ({})
+
+    function toggleExpanded(uid) {
+        var copy = Object.assign({}, tasksPopup.expandedUids);
+        copy[uid] = !copy[uid];
+        tasksPopup.expandedUids = copy;
+    }
+
+    function sortByDue(list) {
         function cmp(a, b) {
             if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0);
             if (a.dueDate && !b.dueDate) return -1;
             if (!a.dueDate && b.dueDate) return 1;
             return 0;
         }
-
-        var all = NextcloudTasksDAV.tasks;
-        var openTasks = [];
-        var doneTasks = [];
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].completed) doneTasks.push(all[i]);
-            else openTasks.push(all[i]);
+        var open = [];
+        var done = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].completed) done.push(list[i]);
+            else open.push(list[i]);
         }
-        openTasks.sort(cmp);
-        doneTasks.sort(cmp);
+        open.sort(cmp);
+        done.sort(cmp);
+        return tasksPopup.showCompleted ? open.concat(done) : open;
+    }
 
-        return tasksPopup.showCompleted ? openTasks.concat(doneTasks) : openTasks;
+    // Baut aus der flachen NextcloudTasksDAV.tasks-Liste einen zweistufigen
+    // Baum (Hauptaufgaben + ihre per RELATED-TO verknuepften Teilaufgaben).
+    // Eine Teilaufgabe, deren Elternaufgabe gerade nicht geladen ist (z.B.
+    // andere Liste), faellt auf eine normale Hauptaufgabe zurueck, statt
+    // kommentarlos zu verschwinden.
+    readonly property var taskTree: {
+        var all = NextcloudTasksDAV.tasks;
+        var byUid = {};
+        for (var i = 0; i < all.length; i++) byUid[all[i].uid] = true;
+
+        var childrenByParent = {};
+        var topLevel = [];
+        for (var j = 0; j < all.length; j++) {
+            var t = all[j];
+            if (t.parentUid && byUid[t.parentUid]) {
+                if (!childrenByParent[t.parentUid]) childrenByParent[t.parentUid] = [];
+                childrenByParent[t.parentUid].push(t);
+            } else {
+                topLevel.push(t);
+            }
+        }
+        return { topLevel: topLevel, childrenByParent: childrenByParent };
+    }
+
+    // Flache Anzeige-Liste fuers ListView: jede Hauptaufgabe gefolgt von
+    // ihren Teilaufgaben, aber nur wenn sie gerade ausgeklappt ist.
+    readonly property var displayRows: {
+        var tree = tasksPopup.taskTree;
+        var topSorted = tasksPopup.sortByDue(tree.topLevel);
+
+        var rows = [];
+        for (var i = 0; i < topSorted.length; i++) {
+            var task = topSorted[i];
+            var children = tree.childrenByParent[task.uid] || [];
+            var expanded = !!tasksPopup.expandedUids[task.uid];
+
+            rows.push(Object.assign({}, task, {
+                depth: 0,
+                hasChildren: children.length > 0,
+                expanded: expanded
+            }));
+
+            if (children.length > 0 && expanded) {
+                var childSorted = tasksPopup.sortByDue(children);
+                for (var c = 0; c < childSorted.length; c++) {
+                    rows.push(Object.assign({}, childSorted[c], {
+                        depth: 1,
+                        hasChildren: false,
+                        expanded: false
+                    }));
+                }
+            }
+        }
+        return rows;
     }
 
     onVisibleChanged: if (visible) NextcloudTasksDAV.fetchNow()
@@ -148,11 +217,28 @@ PopupWindow {
                 Layout.fillHeight: true
                 clip: true
                 spacing: 4
-                model: tasksPopup.sortedTasks
+                model: tasksPopup.displayRows
 
                 delegate: RowLayout {
                     width: ListView.view.width
                     spacing: 8
+
+                    // Einrueckung fuer Teilaufgaben (depth 1)
+                    Item { Layout.preferredWidth: modelData.depth * 18; Layout.preferredHeight: 1 }
+
+                    Text {
+                        Layout.preferredWidth: 14
+                        text: modelData.hasChildren ? (modelData.expanded ? "▾" : "▸") : ""
+                        color: "#89b4fa"
+                        font.pixelSize: 12
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            enabled: modelData.hasChildren
+                            cursorShape: modelData.hasChildren ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: tasksPopup.toggleExpanded(modelData.uid)
+                        }
+                    }
 
                     Text {
                         text: modelData.completed ? "☑" : "☐"
@@ -219,7 +305,7 @@ PopupWindow {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                visible: tasksPopup.sortedTasks.length === 0
+                visible: tasksPopup.displayRows.length === 0
                 text: "Keine Aufgaben"
                 color: "#6c7086"
                 font.pixelSize: 12

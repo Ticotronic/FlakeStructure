@@ -95,7 +95,11 @@ PanelWindow {
             completed: fCompleted,
             dueDate: fHasDueDate ? fDueDate : "",
             dueTime: (fHasDueDate && fHasDueTime) ? fDueTime : "",
-            priority: fPriority
+            priority: fPriority,
+            // Eine bestehende Teilaufgabe bleibt beim Bearbeiten eine
+            // Teilaufgabe - ihre Eltern-Verknuepfung wird hier nicht
+            // veraendert (dafuer gibt es im Dialog noch kein eigenes Feld).
+            parentUid: dialogWindow.editingTask ? (dialogWindow.editingTask.parentUid || "") : ""
         };
 
         if (dialogWindow.isEditing) {

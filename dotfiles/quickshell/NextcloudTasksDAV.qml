@@ -182,7 +182,12 @@ Singleton {
 
     // ---- CRUD --------------------------------------------------------
 
-    // fields: { title, description, completed, dueDate, dueTime, priority }
+    // fields: { title, description, completed, dueDate, dueTime, priority,
+    //           parentUid }
+    // parentUid wird NICHT von hier aus gesetzt (Anlegen einer Teilaufgabe
+    // gibt es im Dialog noch nicht) - aber beim Bearbeiten/Abhaken einer
+    // BESTEHENDEN Teilaufgabe muss sie mit durchgereicht werden, sonst geht
+    // die RELATED-TO-Verknuepfung beim naechsten PUT verloren.
     function createTask(listHref, fields) {
         if (!listHref) return;
         var uid = tasksDav.newUid();
@@ -199,7 +204,8 @@ Singleton {
             completed: !!fields.completed,
             dueDate: fields.dueDate || "",
             dueTime: fields.dueTime || "",
-            priority: fields.priority || 0
+            priority: fields.priority || 0,
+            parentUid: fields.parentUid || ""
         });
         tasksDav.scheduleQuickRefetch();
     }
@@ -214,13 +220,15 @@ Singleton {
             completed: !!fields.completed,
             dueDate: fields.dueDate || "",
             dueTime: fields.dueTime || "",
-            priority: fields.priority || 0
+            priority: fields.priority || 0,
+            parentUid: fields.parentUid || ""
         });
         tasksDav.scheduleQuickRefetch();
     }
 
     // Bequemlichkeitsfunktion fuer den Checkbox-Klick in TasksWidget.qml -
-    // erledigt/wiedereroeffnet eine Aufgabe, ohne den Dialog zu oeffnen.
+    // erledigt/wiedereroeffnet eine Aufgabe (Haupt- oder Teilaufgabe), ohne
+    // den Dialog zu oeffnen.
     function setCompleted(task, completed) {
         tasksDav.updateTask(task.uid, task.href, task.listHref, task.listName, {
             title: task.title,
@@ -228,7 +236,8 @@ Singleton {
             completed: completed,
             dueDate: task.dueDate,
             dueTime: task.dueTime,
-            priority: task.priority
+            priority: task.priority,
+            parentUid: task.parentUid || ""
         });
     }
 
@@ -291,6 +300,7 @@ Singleton {
         }
 
         if (task.priority) lines.push("PRIORITY:" + task.priority);
+        if (task.parentUid) lines.push("RELATED-TO:" + task.parentUid);
 
         if (task.completed) {
             lines.push("STATUS:COMPLETED");
@@ -476,6 +486,11 @@ Singleton {
                     var priorityField = tasksDav.findIcsField(tLines, "PRIORITY");
                     var dueField = tasksDav.findIcsField(tLines, "DUE");
                     var percentField = tasksDav.findIcsField(tLines, "PERCENT-COMPLETE");
+                    // Teilaufgaben: RELATED-TO zeigt (ohne expliziten RELTYPE,
+                    // oder mit RELTYPE=PARENT) auf die UID der uebergeordneten
+                    // Aufgabe - so legen sowohl Tasks.org als auch Nextcloud
+                    // selbst Teilaufgaben-Beziehungen per CalDAV ab.
+                    var relatedToField = tasksDav.findIcsField(tLines, "RELATED-TO");
 
                     var dueInfo = dueField
                         ? tasksDav.parseIcsDateTime(dueField.value, dueField.params)
@@ -496,7 +511,8 @@ Singleton {
                         completed: completed,
                         dueDate: dueInfo ? dueInfo.date : "",
                         dueTime: dueInfo ? dueInfo.time : "",
-                        priority: priorityField ? (parseInt(priorityField.value) || 0) : 0
+                        priority: priorityField ? (parseInt(priorityField.value) || 0) : 0,
+                        parentUid: relatedToField ? relatedToField.value.trim() : ""
                     });
                 }
             }
