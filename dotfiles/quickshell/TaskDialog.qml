@@ -41,6 +41,23 @@ PanelWindow {
     property int fPriority: 0
     property bool fCompleted: false
     property string fListHref: ""
+    property var fTags: []
+
+    // Vorschlaege fuer den Dropdown: alle bekannten Schlagwoerter, die an
+    // dieser Aufgabe noch nicht gesetzt sind.
+    readonly property var availableTags: NextcloudTasksDAV.allTags.filter(function (t) {
+        return dialogWindow.fTags.indexOf(t) === -1;
+    })
+
+    function addTag(raw) {
+        var t = String(raw || "").trim();
+        if (t.length === 0 || dialogWindow.fTags.indexOf(t) !== -1) return;
+        dialogWindow.fTags = dialogWindow.fTags.concat([t]);
+    }
+
+    function removeTag(t) {
+        dialogWindow.fTags = dialogWindow.fTags.filter(function (x) { return x !== t; });
+    }
 
     readonly property bool isEditing: NextcloudTasksDAV.editingTaskUid !== ""
     // Neue Teilaufgabe: Elternaufgabe (nur beim Anlegen relevant)
@@ -65,6 +82,7 @@ PanelWindow {
             fPriority = t.priority || 0;
             fCompleted = !!t.completed;
             fListHref = t.listHref;
+            fTags = (t.tags || []).slice();
             return;
         }
 
@@ -77,6 +95,7 @@ PanelWindow {
         fPriority = 0;
         fCompleted = false;
         fListHref = NextcloudTasksDAV.selectedListHref;
+        fTags = [];
     }
 
     onVisibleChanged: if (visible) resetForm()
@@ -99,6 +118,7 @@ PanelWindow {
             dueDate: fHasDueDate ? fDueDate : "",
             dueTime: (fHasDueDate && fHasDueTime) ? fDueTime : "",
             priority: fPriority,
+            tags: dialogWindow.fTags,
             // Eine bestehende Teilaufgabe bleibt beim Bearbeiten eine
             // Teilaufgabe - ihre Eltern-Verknuepfung wird hier nicht
             // veraendert (dafuer gibt es im Dialog noch kein eigenes Feld).
@@ -133,7 +153,7 @@ PanelWindow {
         id: panel
         anchors.centerIn: parent
         width: 420
-        height: 520
+        height: 610
         color: "#1e1e2e"
         border.color: "#313244"
         border.width: 1
@@ -251,6 +271,83 @@ PanelWindow {
                         return 0;
                     }
                     onActivated: index => dialogWindow.fPriority = dialogWindow.priorityOptions[index].value
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Text { text: "Schlagwörter"; color: "#a6adc8"; font.pixelSize: 11 }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    visible: dialogWindow.fTags.length > 0
+
+                    Repeater {
+                        model: dialogWindow.fTags
+                        Rectangle {
+                            height: 22
+                            width: chipRow.implicitWidth + 14
+                            radius: 11
+                            color: "#313244"
+
+                            Row {
+                                id: chipRow
+                                anchors.centerIn: parent
+                                spacing: 6
+                                Text { text: modelData; color: "#cdd6f4"; font.pixelSize: 11 }
+                                Text {
+                                    text: "✕"
+                                    color: "#a6adc8"
+                                    font.pixelSize: 10
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: dialogWindow.removeTag(modelData)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    // Editierbarer Dropdown: bekanntes Schlagwort auswaehlen
+                    // ODER einfach ein neues eintippen (Enter / "Hinzufuegen").
+                    ComboBox {
+                        id: tagBox
+                        Layout.fillWidth: true
+                        editable: true
+                        model: dialogWindow.availableTags
+                        currentIndex: -1
+                        editText: ""
+                        onAccepted: {
+                            dialogWindow.addTag(tagBox.editText);
+                            tagBox.editText = "";
+                            tagBox.currentIndex = -1;
+                        }
+                        onActivated: index => {
+                            dialogWindow.addTag(tagBox.textAt(index));
+                            tagBox.editText = "";
+                            tagBox.currentIndex = -1;
+                        }
+                    }
+
+                    Button {
+                        text: "Hinzufügen"
+                        enabled: tagBox.editText.trim().length > 0
+                        onClicked: {
+                            dialogWindow.addTag(tagBox.editText);
+                            tagBox.editText = "";
+                            tagBox.currentIndex = -1;
+                        }
+                    }
                 }
             }
 

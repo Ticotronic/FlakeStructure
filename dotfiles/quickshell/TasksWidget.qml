@@ -284,7 +284,9 @@ PopupWindow {
 
                             Text {
                                 visible: modelData.listName !== ""
-                                text: modelData.listName
+                                text: modelData.listName + ((modelData.tags && modelData.tags.length > 0)
+                                    ? "  ·  " + modelData.tags.map(function (t) { return "#" + t; }).join(" ")
+                                    : "")
                                 color: "#6c7086"
                                 font.pixelSize: 10
                             }

@@ -60,6 +60,21 @@ Singleton {
         tasksDav.activeScreen = null;
     }
 
+    // Alle Schlagwoerter, die in irgendeiner Aufgabe vorkommen (sortiert,
+    // ohne Duplikate) - Vorschlagsliste fuer den Dropdown im TaskDialog.
+    readonly property var allTags: {
+        var seen = {};
+        var out = [];
+        for (var i = 0; i < tasksDav.tasks.length; i++) {
+            var tg = tasksDav.tasks[i].tags || [];
+            for (var j = 0; j < tg.length; j++) {
+                if (!seen[tg[j]]) { seen[tg[j]] = true; out.push(tg[j]); }
+            }
+        }
+        out.sort(function (a, b) { return a.toLowerCase() < b.toLowerCase() ? -1 : (a.toLowerCase() > b.toLowerCase() ? 1 : 0); });
+        return out;
+    }
+
     function findTask(uid) {
         for (var i = 0; i < tasksDav.tasks.length; i++) {
             if (tasksDav.tasks[i].uid === uid) return tasksDav.tasks[i];
@@ -207,7 +222,8 @@ Singleton {
             dueDate: fields.dueDate || "",
             dueTime: fields.dueTime || "",
             priority: fields.priority || 0,
-            parentUid: fields.parentUid || ""
+            parentUid: fields.parentUid || "",
+            tags: fields.tags || []
         });
         tasksDav.scheduleQuickRefetch();
     }
@@ -223,7 +239,8 @@ Singleton {
             dueDate: fields.dueDate || "",
             dueTime: fields.dueTime || "",
             priority: fields.priority || 0,
-            parentUid: fields.parentUid || ""
+            parentUid: fields.parentUid || "",
+            tags: fields.tags || []
         });
         tasksDav.scheduleQuickRefetch();
     }
@@ -239,7 +256,8 @@ Singleton {
             dueDate: task.dueDate,
             dueTime: task.dueTime,
             priority: task.priority,
-            parentUid: task.parentUid || ""
+            parentUid: task.parentUid || "",
+            tags: task.tags || []
         });
     }
 
@@ -303,6 +321,11 @@ Singleton {
 
         if (task.priority) lines.push("PRIORITY:" + task.priority);
         if (task.parentUid) lines.push("RELATED-TO:" + task.parentUid);
+        if (task.tags && task.tags.length > 0) {
+            // CATEGORIES: kommagetrennte Liste; Kommas INNERHALB eines
+            // Schlagworts werden per escapeIcsText als "\\," maskiert.
+            lines.push("CATEGORIES:" + task.tags.map(function (t) { return tasksDav.escapeIcsText(t); }).join(","));
+        }
 
         if (task.completed) {
             lines.push("STATUS:COMPLETED");
@@ -396,6 +419,36 @@ Singleton {
             }
         }
         return null;
+    }
+
+    // Liest ALLE CATEGORIES-Zeilen eines VTODO (kommagetrennt, "\\," = Komma
+    // im Schlagwort) und liefert eine duplikatfreie Liste.
+    function parseCategories(lines) {
+        var tags = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            var colonIdx = line.indexOf(":");
+            if (colonIdx === -1) continue;
+            var headName = line.substring(0, colonIdx).split(";")[0];
+            if (headName.toUpperCase() !== "CATEGORIES") continue;
+
+            var value = line.substring(colonIdx + 1);
+            var cur = "";
+            for (var c = 0; c < value.length; c++) {
+                var ch = value.charAt(c);
+                if (ch === "\\" && c + 1 < value.length) {
+                    cur += value.charAt(c + 1);
+                    c++;
+                } else if (ch === ",") {
+                    if (cur.trim().length > 0 && tags.indexOf(cur.trim()) === -1) tags.push(cur.trim());
+                    cur = "";
+                } else {
+                    cur += ch;
+                }
+            }
+            if (cur.trim().length > 0 && tags.indexOf(cur.trim()) === -1) tags.push(cur.trim());
+        }
+        return tags;
     }
 
     function parseIcsDateTime(raw, params) {
@@ -514,7 +567,8 @@ Singleton {
                         dueDate: dueInfo ? dueInfo.date : "",
                         dueTime: dueInfo ? dueInfo.time : "",
                         priority: priorityField ? (parseInt(priorityField.value) || 0) : 0,
-                        parentUid: relatedToField ? relatedToField.value.trim() : ""
+                        parentUid: relatedToField ? relatedToField.value.trim() : "",
+                        tags: tasksDav.parseCategories(tLines)
                     });
                 }
             }
