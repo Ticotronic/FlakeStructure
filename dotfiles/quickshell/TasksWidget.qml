@@ -295,6 +295,26 @@ PopupWindow {
                     }
 
                     Text {
+                        visible: modelData.depth === 0
+                        text: "+"
+                        color: "#a6e3a1"
+                        font.pixelSize: 14
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                // Elternaufgabe aufklappen, damit die neue Teilaufgabe sichtbar ist
+                                var copy = Object.assign({}, tasksPopup.expandedUids);
+                                copy[modelData.uid] = true;
+                                tasksPopup.expandedUids = copy;
+                                NextcloudTasksDAV.openForCreate(modelData.listHref, tasksPopup.anchorWindow.screen, modelData.uid);
+                                tasksPopup.closeRequested();
+                            }
+                        }
+                    }
+
+                    Text {
                         visible: modelData.dueDate !== ""
                         text: modelData.dueDate
                         color: (!modelData.completed && modelData.dueDate < tasksPopup.todayStr) ? "#f38ba8" : "#a6adc8"

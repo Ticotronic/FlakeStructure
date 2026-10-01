@@ -37,9 +37,11 @@ Singleton {
     property var activeScreen: null
     property string editingTaskUid: ""   // "" => neue Aufgabe anlegen
     property string selectedListHref: "" // Vorauswahl fuer eine neue Aufgabe
+    property string creatingParentUid: "" // != "" => neue TEILaufgabe dieser Aufgabe
 
-    function openForCreate(listHref, screen) {
+    function openForCreate(listHref, screen, parentUid) {
         tasksDav.editingTaskUid = "";
+        tasksDav.creatingParentUid = parentUid || "";
         tasksDav.selectedListHref = listHref && listHref.length > 0
             ? listHref
             : (tasksDav.taskLists.length > 0 ? tasksDav.taskLists[0].href : "");

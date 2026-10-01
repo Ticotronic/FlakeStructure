@@ -43,6 +43,9 @@ PanelWindow {
     property string fListHref: ""
 
     readonly property bool isEditing: NextcloudTasksDAV.editingTaskUid !== ""
+    // Neue Teilaufgabe: Elternaufgabe (nur beim Anlegen relevant)
+    readonly property bool isSubtaskCreate: !dialogWindow.isEditing && NextcloudTasksDAV.creatingParentUid !== ""
+    readonly property var creatingParent: dialogWindow.isSubtaskCreate ? NextcloudTasksDAV.findTask(NextcloudTasksDAV.creatingParentUid) : null
     readonly property var editingTask: dialogWindow.isEditing ? NextcloudTasksDAV.findTask(NextcloudTasksDAV.editingTaskUid) : null
 
     function todayStr() {
@@ -99,7 +102,9 @@ PanelWindow {
             // Eine bestehende Teilaufgabe bleibt beim Bearbeiten eine
             // Teilaufgabe - ihre Eltern-Verknuepfung wird hier nicht
             // veraendert (dafuer gibt es im Dialog noch kein eigenes Feld).
-            parentUid: dialogWindow.editingTask ? (dialogWindow.editingTask.parentUid || "") : ""
+            parentUid: dialogWindow.isEditing
+                ? (dialogWindow.editingTask ? (dialogWindow.editingTask.parentUid || "") : "")
+                : NextcloudTasksDAV.creatingParentUid
         };
 
         if (dialogWindow.isEditing) {
@@ -150,7 +155,7 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
-                    text: dialogWindow.isEditing ? "Aufgabe bearbeiten" : "Neue Aufgabe"
+                    text: dialogWindow.isEditing ? "Aufgabe bearbeiten" : (dialogWindow.isSubtaskCreate ? "Neue Teilaufgabe" : "Neue Aufgabe")
                     color: "#cdd6f4"
                     font.pixelSize: 18
                     font.bold: true
@@ -164,6 +169,15 @@ PanelWindow {
                 }
             }
 
+            Text {
+                Layout.fillWidth: true
+                visible: dialogWindow.isSubtaskCreate && dialogWindow.creatingParent !== null
+                text: "Teilaufgabe von: " + (dialogWindow.creatingParent ? dialogWindow.creatingParent.title : "")
+                color: "#a6adc8"
+                font.pixelSize: 11
+                elide: Text.ElideRight
+            }
+
             RowLayout {
                 Layout.fillWidth: true
                 visible: NextcloudTasksDAV.taskLists.length > 1
@@ -172,7 +186,7 @@ PanelWindow {
                     Layout.fillWidth: true
                     // Eine Aufgabe wird hier nicht zwischen Listen verschoben,
                     // nur bearbeitet oder geloescht - analog zu EventDialog.
-                    enabled: !dialogWindow.isEditing
+                    enabled: !dialogWindow.isEditing && !dialogWindow.isSubtaskCreate
                     model: NextcloudTasksDAV.taskLists.map(function (l) { return l.name; })
                     currentIndex: {
                         for (var i = 0; i < NextcloudTasksDAV.taskLists.length; i++)
