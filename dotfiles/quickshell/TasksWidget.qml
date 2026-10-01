@@ -166,24 +166,36 @@ PopupWindow {
                         }
                     }
 
-                    ColumnLayout {
+                    Item {
+                        // Plain Item statt direkt ColumnLayout als Layout-Kind,
+                        // damit die MouseArea unten per anchors.fill auf ein
+                        // Nicht-Layout-Item zielt (sonst "undefined behavior"-
+                        // Warnung, weil ein von ColumnLayout verwaltetes Kind
+                        // gleichzeitig Anchors benutzt).
                         Layout.fillWidth: true
-                        spacing: 0
+                        implicitHeight: titleColumn.implicitHeight
 
-                        Text {
-                            Layout.fillWidth: true
-                            text: modelData.title
-                            color: modelData.completed ? "#6c7086" : "#cdd6f4"
-                            font.pixelSize: 13
-                            font.strikeout: modelData.completed
-                            elide: Text.ElideRight
-                        }
+                        ColumnLayout {
+                            id: titleColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            spacing: 0
 
-                        Text {
-                            visible: modelData.listName !== ""
-                            text: modelData.listName
-                            color: "#6c7086"
-                            font.pixelSize: 10
+                            Text {
+                                Layout.fillWidth: true
+                                text: modelData.title
+                                color: modelData.completed ? "#6c7086" : "#cdd6f4"
+                                font.pixelSize: 13
+                                font.strikeout: modelData.completed
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                visible: modelData.listName !== ""
+                                text: modelData.listName
+                                color: "#6c7086"
+                                font.pixelSize: 10
+                            }
                         }
 
                         MouseArea {
