@@ -64,12 +64,41 @@ PopupWindow {
         tasksPopup.expandedUids = copy;
     }
 
+    // Sortierung wie der Standard-Modus ("Smart") der Tasks-Android-App:
+    // Faelligkeitszeitpunkt + 2 Tage * Wichtigkeit (hoch=0, mittel=1,
+    // niedrig=2, keine=3); Aufgaben ohne Faelligkeit stehen hinten (die App
+    // setzt dafuer "jetzt * 2" ein); Faelligkeit ohne Uhrzeit zaehlt als
+    // 11:59 Uhr desselben Tages. Erledigte kommen - falls eingeblendet -
+    // nach den offenen.
+    // Hinweis: aus dem Gedaechtnis nachgebaut, die App-Quelle war hier nicht
+    // abrufbar - bei Abweichungen bitte melden.
+    function importanceOf(p) {
+        if (p >= 1 && p <= 4) return 0;
+        if (p === 5) return 1;
+        if (p >= 6 && p <= 9) return 2;
+        return 3;
+    }
+
+    function smartKey(t, nowMs) {
+        var base;
+        if (t.dueDate) {
+            var d = new Date(t.dueDate + "T" + (t.dueTime || "11:59") + ":00");
+            base = d.getTime();
+        } else {
+            base = nowMs * 2;
+        }
+        return base + 172800000 * tasksPopup.importanceOf(t.priority);
+    }
+
     function sortByDue(list) {
+        var nowMs = Date.now();
         function cmp(a, b) {
-            if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0);
-            if (a.dueDate && !b.dueDate) return -1;
-            if (!a.dueDate && b.dueDate) return 1;
-            return 0;
+            var ka = tasksPopup.smartKey(a, nowMs);
+            var kb = tasksPopup.smartKey(b, nowMs);
+            if (ka !== kb) return ka < kb ? -1 : 1;
+            var ta = (a.title || "").toLowerCase();
+            var tb = (b.title || "").toLowerCase();
+            return ta < tb ? -1 : (ta > tb ? 1 : 0);
         }
         var open = [];
         var done = [];
