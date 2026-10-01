@@ -25,12 +25,27 @@ PanelWindow {
 
     anchors { top: true; bottom: true; left: true; right: true }
 
+    // Wie in der Tasks-Android-App (Reihenfolge hier umgekehrt: Keine/Niedrig/Mittel/Hoch).
+    // Farben: Material 500 aus tasks/tasks (kmp ColorProvider.priorityColor:
+    // RED_500 / AMBER_500 / BLUE_500 / GREY_500). Die App tont diese Basisfarben
+    // noch fuer Hell/Dunkel nach; hier die unveraenderten Basiswerte.
+    // value = iCalendar-PRIORITY (1 hoch, 5 mittel, 9 niedrig, 0 keine) - so
+    // bildet Tasks.org sie per CalDAV ab.
     readonly property var priorityOptions: [
-        { label: "Keine", value: 0 },
-        { label: "Hoch", value: 1 },
-        { label: "Mittel", value: 5 },
-        { label: "Niedrig", value: 9 }
+        { label: "Keine",   value: 0, color: "#9e9e9e" },
+        { label: "Niedrig", value: 9, color: "#2196f3" },
+        { label: "Mittel",  value: 5, color: "#ffc107" },
+        { label: "Hoch",    value: 1, color: "#f44336" }
     ]
+
+    // Fremde Clients duerfen 1-4 (hoch), 5 (mittel), 6-9 (niedrig) schreiben:
+    // auf die vier Stufen der Auswahl abbilden.
+    function normalizePriority(p) {
+        if (p >= 1 && p <= 4) return 1;
+        if (p === 5) return 5;
+        if (p >= 6 && p <= 9) return 9;
+        return 0;
+    }
 
     property string fTitle: ""
     property string fDescription: ""
@@ -79,7 +94,7 @@ PanelWindow {
             fDueDate = t.dueDate || dialogWindow.todayStr();
             fHasDueTime = !!t.dueTime;
             fDueTime = t.dueTime || "09:00";
-            fPriority = t.priority || 0;
+            fPriority = dialogWindow.normalizePriority(t.priority || 0);
             fCompleted = !!t.completed;
             fListHref = t.listHref;
             fTags = (t.tags || []).slice();
@@ -262,15 +277,48 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 Text { text: "Priorität"; color: "#a6adc8"; font.pixelSize: 11 }
-                ComboBox {
-                    Layout.fillWidth: true
-                    model: dialogWindow.priorityOptions.map(function (o) { return o.label; })
-                    currentIndex: {
-                        for (var i = 0; i < dialogWindow.priorityOptions.length; i++)
-                            if (dialogWindow.priorityOptions[i].value === dialogWindow.fPriority) return i;
-                        return 0;
+                Row {
+                    spacing: 14
+
+                    Repeater {
+                        model: dialogWindow.priorityOptions
+
+                        RadioButton {
+                            id: prioRadio
+                            checked: dialogWindow.fPriority === modelData.value
+                            onClicked: dialogWindow.fPriority = modelData.value
+                            padding: 0
+                            spacing: 6
+
+                            indicator: Rectangle {
+                                implicitWidth: 18
+                                implicitHeight: 18
+                                x: 0
+                                y: (prioRadio.height - height) / 2
+                                radius: 9
+                                color: "transparent"
+                                border.width: 2
+                                border.color: modelData.color
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 10
+                                    height: 10
+                                    radius: 5
+                                    color: modelData.color
+                                    visible: prioRadio.checked
+                                }
+                            }
+
+                            contentItem: Text {
+                                leftPadding: 24
+                                text: modelData.label
+                                color: prioRadio.checked ? "#cdd6f4" : "#a6adc8"
+                                font.pixelSize: 12
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
                     }
-                    onActivated: index => dialogWindow.fPriority = dialogWindow.priorityOptions[index].value
                 }
             }
 

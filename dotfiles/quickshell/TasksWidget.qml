@@ -48,6 +48,16 @@ PopupWindow {
         tasksPopup.expandedUids = copy;
     }
 
+    // Checkbox-Farbe nach Prioritaet, wie in der Tasks-Android-App
+    // (Material 500: rot / amber / blau / grau). iCalendar-PRIORITY:
+    // 1-4 hoch, 5 mittel, 6-9 niedrig, 0/fehlend keine.
+    function priorityColor(p) {
+        if (p >= 1 && p <= 4) return "#f44336";
+        if (p === 5) return "#ffc107";
+        if (p >= 6 && p <= 9) return "#2196f3";
+        return "#9e9e9e";
+    }
+
     function toggleExpanded(uid) {
         var copy = Object.assign({}, tasksPopup.expandedUids);
         copy[uid] = !copy[uid];
@@ -248,7 +258,7 @@ PopupWindow {
 
                     Text {
                         text: modelData.completed ? "☑" : "☐"
-                        color: modelData.completed ? "#6c7086" : "#cdd6f4"
+                        color: modelData.completed ? "#6c7086" : tasksPopup.priorityColor(modelData.priority)
                         font.pixelSize: 14
                         MouseArea {
                             anchors.fill: parent
