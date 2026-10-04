@@ -48,124 +48,14 @@ PopupWindow {
         tasksPopup.expandedUids = copy;
     }
 
-    // Checkbox-Farbe nach Prioritaet, wie in der Tasks-Android-App
-    // (Material 500: rot / amber / blau / grau). iCalendar-PRIORITY:
-    // 1-4 hoch, 5 mittel, 6-9 niedrig, 0/fehlend keine.
-    function priorityColor(p) {
-        if (p >= 1 && p <= 4) return "#f44336";
-        if (p === 5) return "#ffc107";
-        if (p >= 6 && p <= 9) return "#2196f3";
-        return "#9e9e9e";
-    }
-
     function toggleExpanded(uid) {
         var copy = Object.assign({}, tasksPopup.expandedUids);
         copy[uid] = !copy[uid];
         tasksPopup.expandedUids = copy;
     }
 
-    // Sortierung wie der Standard-Modus ("Smart") der Tasks-Android-App:
-    // Faelligkeitszeitpunkt + 2 Tage * Wichtigkeit (hoch=0, mittel=1,
-    // niedrig=2, keine=3); Aufgaben ohne Faelligkeit stehen hinten (die App
-    // setzt dafuer "jetzt * 2" ein); Faelligkeit ohne Uhrzeit zaehlt als
-    // 11:59 Uhr desselben Tages. Erledigte kommen - falls eingeblendet -
-    // nach den offenen.
-    // Hinweis: aus dem Gedaechtnis nachgebaut, die App-Quelle war hier nicht
-    // abrufbar - bei Abweichungen bitte melden.
-    function importanceOf(p) {
-        if (p >= 1 && p <= 4) return 0;
-        if (p === 5) return 1;
-        if (p >= 6 && p <= 9) return 2;
-        return 3;
-    }
-
-    function smartKey(t, nowMs) {
-        var base;
-        if (t.dueDate) {
-            var d = new Date(t.dueDate + "T" + (t.dueTime || "11:59") + ":00");
-            base = d.getTime();
-        } else {
-            base = nowMs * 2;
-        }
-        return base + 172800000 * tasksPopup.importanceOf(t.priority);
-    }
-
-    function sortByDue(list) {
-        var nowMs = Date.now();
-        function cmp(a, b) {
-            var ka = tasksPopup.smartKey(a, nowMs);
-            var kb = tasksPopup.smartKey(b, nowMs);
-            if (ka !== kb) return ka < kb ? -1 : 1;
-            var ta = (a.title || "").toLowerCase();
-            var tb = (b.title || "").toLowerCase();
-            return ta < tb ? -1 : (ta > tb ? 1 : 0);
-        }
-        var open = [];
-        var done = [];
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].completed) done.push(list[i]);
-            else open.push(list[i]);
-        }
-        open.sort(cmp);
-        done.sort(cmp);
-        return tasksPopup.showCompleted ? open.concat(done) : open;
-    }
-
-    // Baut aus der flachen NextcloudTasksDAV.tasks-Liste einen zweistufigen
-    // Baum (Hauptaufgaben + ihre per RELATED-TO verknuepften Teilaufgaben).
-    // Eine Teilaufgabe, deren Elternaufgabe gerade nicht geladen ist (z.B.
-    // andere Liste), faellt auf eine normale Hauptaufgabe zurueck, statt
-    // kommentarlos zu verschwinden.
-    readonly property var taskTree: {
-        var all = NextcloudTasksDAV.tasks;
-        var byUid = {};
-        for (var i = 0; i < all.length; i++) byUid[all[i].uid] = true;
-
-        var childrenByParent = {};
-        var topLevel = [];
-        for (var j = 0; j < all.length; j++) {
-            var t = all[j];
-            if (t.parentUid && byUid[t.parentUid]) {
-                if (!childrenByParent[t.parentUid]) childrenByParent[t.parentUid] = [];
-                childrenByParent[t.parentUid].push(t);
-            } else {
-                topLevel.push(t);
-            }
-        }
-        return { topLevel: topLevel, childrenByParent: childrenByParent };
-    }
-
-    // Flache Anzeige-Liste fuers ListView: jede Hauptaufgabe gefolgt von
-    // ihren Teilaufgaben, aber nur wenn sie gerade ausgeklappt ist.
-    readonly property var displayRows: {
-        var tree = tasksPopup.taskTree;
-        var topSorted = tasksPopup.sortByDue(tree.topLevel);
-
-        var rows = [];
-        for (var i = 0; i < topSorted.length; i++) {
-            var task = topSorted[i];
-            var children = tree.childrenByParent[task.uid] || [];
-            var expanded = !!tasksPopup.expandedUids[task.uid];
-
-            rows.push(Object.assign({}, task, {
-                depth: 0,
-                hasChildren: children.length > 0,
-                expanded: expanded
-            }));
-
-            if (children.length > 0 && expanded) {
-                var childSorted = tasksPopup.sortByDue(children);
-                for (var c = 0; c < childSorted.length; c++) {
-                    rows.push(Object.assign({}, childSorted[c], {
-                        depth: 1,
-                        hasChildren: false,
-                        expanded: false
-                    }));
-                }
-            }
-        }
-        return rows;
-    }
+    // Zeilenliste (Sortierung/Baum-Logik: NextcloudTasksDAV.buildRows)
+    readonly property var displayRows: NextcloudTasksDAV.buildRows(tasksPopup.showCompleted, false, tasksPopup.expandedUids, "")
 
     onVisibleChanged: if (visible) NextcloudTasksDAV.fetchNow()
 
@@ -202,6 +92,22 @@ PopupWindow {
                         onClicked: {
                             var defaultList = NextcloudTasksDAV.taskLists.length > 0 ? NextcloudTasksDAV.taskLists[0].href : "";
                             NextcloudTasksDAV.openForCreate(defaultList, tasksPopup.anchorWindow.screen);
+                            tasksPopup.closeRequested();
+                        }
+                    }
+                }
+
+                Text {
+                    text: "Vergrößern"
+                    color: "#89b4fa"
+                    font.pixelSize: 11
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            // Eigenes, zentriertes Fenster (TasksOverview.qml)
+                            var screen = tasksPopup.anchorWindow.screen;
+                            NextcloudTasksDAV.openOverview(screen);
                             tasksPopup.closeRequested();
                         }
                     }
@@ -287,7 +193,7 @@ PopupWindow {
 
                     Text {
                         text: modelData.completed ? "☑" : "☐"
-                        color: modelData.completed ? "#6c7086" : tasksPopup.priorityColor(modelData.priority)
+                        color: modelData.completed ? "#6c7086" : NextcloudTasksDAV.priorityColor(modelData.priority)
                         font.pixelSize: 14
                         MouseArea {
                             anchors.fill: parent

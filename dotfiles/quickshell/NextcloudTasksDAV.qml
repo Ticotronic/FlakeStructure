@@ -75,6 +75,143 @@ Singleton {
         return out;
     }
 
+    // ---- Uebersichtsfenster (TasksOverview.qml, pro Screen, zentriert) ----
+
+    property bool overviewVisible: false
+    property var overviewScreen: null
+
+    function openOverview(screen) {
+        tasksDav.overviewScreen = screen;
+        tasksDav.overviewVisible = true;
+    }
+
+    function closeOverview() {
+        tasksDav.overviewVisible = false;
+        tasksDav.overviewScreen = null;
+    }
+
+    // ---- Gemeinsame Darstellungslogik (Popup + Uebersichtsfenster) ----
+
+    // Checkbox-Farbe nach Prioritaet, wie in der Tasks-Android-App
+    // (Material 500: rot / amber / blau / grau). iCalendar-PRIORITY:
+    // 1-4 hoch, 5 mittel, 6-9 niedrig, 0/fehlend keine.
+    function priorityColor(p) {
+        if (p >= 1 && p <= 4) return "#f44336";
+        if (p === 5) return "#ffc107";
+        if (p >= 6 && p <= 9) return "#2196f3";
+        return "#9e9e9e";
+    }
+
+    // Sortierung wie der Standard-Modus ("Smart") der Tasks-Android-App:
+    // Faelligkeitszeitpunkt + 2 Tage * Wichtigkeit (hoch=0, mittel=1,
+    // niedrig=2, keine=3); ohne Faelligkeit hinten ("jetzt * 2"); Datum ohne
+    // Uhrzeit zaehlt als 11:59 Uhr. Aus dem Gedaechtnis nachgebaut.
+    function importanceOf(p) {
+        if (p >= 1 && p <= 4) return 0;
+        if (p === 5) return 1;
+        if (p >= 6 && p <= 9) return 2;
+        return 3;
+    }
+
+    function smartKey(t, nowMs) {
+        var base;
+        if (t.dueDate) {
+            base = new Date(t.dueDate + "T" + (t.dueTime || "11:59") + ":00").getTime();
+        } else {
+            base = nowMs * 2;
+        }
+        return base + 172800000 * tasksDav.importanceOf(t.priority);
+    }
+
+    // Offene nach Smart-Key, danach (falls gewuenscht) erledigte.
+    function sortTasks(list, showCompleted) {
+        var nowMs = Date.now();
+        function cmp(a, b) {
+            var ka = tasksDav.smartKey(a, nowMs);
+            var kb = tasksDav.smartKey(b, nowMs);
+            if (ka !== kb) return ka < kb ? -1 : 1;
+            var ta = (a.title || "").toLowerCase();
+            var tb = (b.title || "").toLowerCase();
+            return ta < tb ? -1 : (ta > tb ? 1 : 0);
+        }
+        var open = [];
+        var done = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].completed) done.push(list[i]);
+            else open.push(list[i]);
+        }
+        open.sort(cmp);
+        done.sort(cmp);
+        return showCompleted ? open.concat(done) : open;
+    }
+
+    // Flache Zeilenliste fuer ListViews: Hauptaufgaben, gefolgt von ihren
+    // Teilaufgaben (RELATED-TO) falls ausgeklappt (expandAll oder
+    // expandedUids[uid]). tag != "": nur Aufgaben mit diesem Schlagwort - eine
+    // Hauptaufgabe bleibt auch sichtbar, wenn nur eine ihrer Teilaufgaben
+    // passt (dann nur die passenden Teilaufgaben). Eine Teilaufgabe, deren
+    // Elternaufgabe nicht geladen ist, zaehlt als Hauptaufgabe.
+    function buildRows(showCompleted, expandAll, expandedUids, tag) {
+        var all = tasksDav.tasks;
+        var byUid = {};
+        for (var i = 0; i < all.length; i++) byUid[all[i].uid] = true;
+
+        var childrenByParent = {};
+        var topLevel = [];
+        for (var j = 0; j < all.length; j++) {
+            var t = all[j];
+            if (t.parentUid && byUid[t.parentUid]) {
+                if (!childrenByParent[t.parentUid]) childrenByParent[t.parentUid] = [];
+                childrenByParent[t.parentUid].push(t);
+            } else {
+                topLevel.push(t);
+            }
+        }
+
+        function hasTag(x) { return !tag || (x.tags && x.tags.indexOf(tag) !== -1); }
+
+        var rows = [];
+        var topSorted = tasksDav.sortTasks(topLevel, showCompleted);
+        for (var k = 0; k < topSorted.length; k++) {
+            var task = topSorted[k];
+            var children = childrenByParent[task.uid] || [];
+            var shownChildren = children;
+            if (tag && !hasTag(task)) {
+                shownChildren = children.filter(hasTag);
+                if (shownChildren.length === 0) continue;
+            }
+
+            var expanded = expandAll || !!(expandedUids && expandedUids[task.uid]);
+            rows.push(Object.assign({}, task, {
+                depth: 0,
+                hasChildren: shownChildren.length > 0,
+                expanded: expanded
+            }));
+
+            if (shownChildren.length > 0 && expanded) {
+                var childSorted = tasksDav.sortTasks(shownChildren, showCompleted);
+                for (var c = 0; c < childSorted.length; c++) {
+                    rows.push(Object.assign({}, childSorted[c], {
+                        depth: 1,
+                        hasChildren: false,
+                        expanded: false
+                    }));
+                }
+            }
+        }
+        return rows;
+    }
+
+    // Anzahl OFFENER Aufgaben (inkl. Teilaufgaben) pro Schlagwort
+    function openCountForTag(tag) {
+        var n = 0;
+        for (var i = 0; i < tasksDav.tasks.length; i++) {
+            var t = tasksDav.tasks[i];
+            if (!t.completed && t.tags && t.tags.indexOf(tag) !== -1) n++;
+        }
+        return n;
+    }
+
     function findTask(uid) {
         for (var i = 0; i < tasksDav.tasks.length; i++) {
             if (tasksDav.tasks[i].uid === uid) return tasksDav.tasks[i];
@@ -279,6 +416,15 @@ Singleton {
             .replace(/;/g, "\\;")
             .replace(/,/g, "\\,")
             .replace(/\n/g, "\\n");
+    }
+
+    // Gegenstueck zu escapeIcsText: \n -> Zeilenumbruch, \, \; \\ -> Zeichen.
+    // Ohne das wuerden Beschreibungen angezeigt UND beim naechsten Speichern
+    // erneut maskiert (aus "\," wuerde "\\\,").
+    function unescapeIcsText(s) {
+        return String(s).replace(/\\([nN,;\\])/g, function (m, c) {
+            return (c === "n" || c === "N") ? "\n" : c;
+        });
     }
 
     function pad2(n) {
@@ -561,8 +707,8 @@ Singleton {
                         href: href,
                         listHref: listHref,
                         listName: listName,
-                        title: summaryField ? summaryField.value : "(ohne Titel)",
-                        description: descriptionField ? descriptionField.value : "",
+                        title: summaryField ? tasksDav.unescapeIcsText(summaryField.value) : "(ohne Titel)",
+                        description: descriptionField ? tasksDav.unescapeIcsText(descriptionField.value) : "",
                         completed: completed,
                         dueDate: dueInfo ? dueInfo.date : "",
                         dueTime: dueInfo ? dueInfo.time : "",

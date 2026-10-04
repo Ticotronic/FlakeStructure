@@ -251,6 +251,12 @@ ShellRoot {
         delegate: TaskDialog {}
     }
 
+    // Grosse Aufgaben-Uebersicht (zentriertes Fenster) pro Monitor
+    Variants {
+        model: Quickshell.screens
+        delegate: TasksOverview {}
+    }
+
     // Toast-Benachrichtigung für Termin-Erinnerungen (nur einmal, nicht pro Monitor)
     ReminderToastArea {}
 }
