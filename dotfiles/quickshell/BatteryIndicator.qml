@@ -69,7 +69,12 @@ Item {
                     anchors.centerIn: parent
                     font.family: "Symbols Nerd Font"
                     font.pixelSize: 10
-                    color: "#1e1e2e"
+                    // Helles Symbol mit dunkler Kontur: bleibt sowohl auf dem
+                    // farbigen Fuellbalken als auch auf dem leeren, dunklen
+                    // Teil der Batterie (Stand < 50%) sichtbar.
+                    color: "#cdd6f4"
+                    style: Text.Outline
+                    styleColor: "#1e1e2e"
                     text: ""
                 }
             }
