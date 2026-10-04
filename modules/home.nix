@@ -15,6 +15,13 @@
   # Der Pfad ist relativ zum Standort dieser home.nix Datei
   xdg.configFile."niri".source = ../dotfiles/niri;
 
+  xdg.configFile."autostart/nm-applet.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=nm-applet
+    Hidden=true
+  '';
+
   # Alacritty direkt über Nix konfigurieren
   programs.alacritty = {
     enable = true;
