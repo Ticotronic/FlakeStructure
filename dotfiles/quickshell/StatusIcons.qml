@@ -2,9 +2,36 @@ import QtQuick
 import QtQuick.Layouts
 
 RowLayout {
+    id: root
     spacing: 16
 
-    Text { color: "#cdd6f4"; font.pixelSize: 14; font.family: "Symbols Nerd Font"; text: wlanStatus }
+    // Wird von Bar.qml gesetzt (Ankerfenster fuer das WLAN-Menue)
+    property var barWindow: null
+
+    // Klick auf den WLAN-Namen oeffnet WlanMenu.qml
+    Text {
+        id: wlanLabel
+        color: wlanMouse.containsMouse ? "#89b4fa" : "#cdd6f4"
+        font.pixelSize: 14
+        font.family: "Symbols Nerd Font"
+        text: wlanStatus
+
+        MouseArea {
+            id: wlanMouse
+            anchors.fill: parent
+            anchors.margins: -4
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: wlanMenu.toggle()
+        }
+    }
+
+    WlanMenu {
+        id: wlanMenu
+        barWindow: root.barWindow
+        anchorItem: wlanLabel
+    }
+
     // Fallback 100%, damit die Anzeige beim Start (bevor der erste
     // Messwert eintrifft) nicht fälschlich rot blinkt.
     BatteryIndicator {

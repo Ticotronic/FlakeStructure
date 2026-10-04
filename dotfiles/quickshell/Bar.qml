@@ -74,7 +74,9 @@ PanelWindow {
 
         Item { Layout.fillWidth: true }
 
-        StatusIcons {}
+        StatusIcons {
+            barWindow: topBar
+        }
 
         TrayArea {
             Layout.fillHeight: true

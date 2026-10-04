@@ -3,6 +3,7 @@ module quickshell
 Bar 1.0 Bar.qml
 Workspaces 1.0 Workspaces.qml
 StatusIcons 1.0 StatusIcons.qml
+WlanMenu 1.0 WlanMenu.qml
 BatteryIndicator 1.0 BatteryIndicator.qml
 RamIndicator 1.0 RamIndicator.qml
 TrayItem 1.0 TrayItem.qml
