@@ -14,6 +14,8 @@ import Quickshell.Wayland
 //     direkt; verschluesseltes neues Netz: Passwort-Feld)
 //   - Verbindung trennen, neu scannen, "Verbindungen bearbeiten" (oeffnet
 //     nm-connection-editor aus networkmanagerapplet)
+//   - Hotspot starten/beenden (nmcli device wifi hotspot): der Rechner wird
+//     selbst zum WLAN-Access-Point; das Profil heisst "QsHotspot"
 //
 // Es ist bewusst ein eigenes Overlay-Fenster (wie TaskDialog/Launcher) und
 // kein PopupWindow, damit das Passwort-Feld Tastatur-Fokus bekommt.
@@ -31,7 +33,7 @@ PanelWindow {
     exclusiveZone: -1
 
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: wlanMenu.pendingSsid !== ""
+    WlrLayershell.keyboardFocus: (wlanMenu.pendingSsid !== "" || wlanMenu.hotspotFormOpen)
         ? WlrKeyboardFocus.Exclusive
         : WlrKeyboardFocus.OnDemand
 
@@ -45,6 +47,9 @@ PanelWindow {
     property string statusText: ""
     property bool statusIsError: false
     property bool busy: false
+    property bool hotspotActive: false
+    property bool hotspotFormOpen: false
+    readonly property string hotspotConn: "QsHotspot"
     property real panelX: 0
     readonly property int panelWidth: 340
 
@@ -69,6 +74,7 @@ PanelWindow {
         var maxX = Math.max(8, (wlanMenu.barWindow ? wlanMenu.barWindow.width : 1920) - wlanMenu.panelWidth - 8);
         wlanMenu.panelX = Math.max(8, Math.min(maxX, ax + aw / 2 - wlanMenu.panelWidth / 2));
         wlanMenu.pendingSsid = "";
+        wlanMenu.hotspotFormOpen = false;
         wlanMenu.setStatus("", false);
         wlanMenu.open = true;
         wlanMenu.refresh();
@@ -78,6 +84,7 @@ PanelWindow {
     function close() {
         wlanMenu.open = false;
         wlanMenu.pendingSsid = "";
+        wlanMenu.hotspotFormOpen = false;
     }
 
     function toggle() {
@@ -154,11 +161,15 @@ PanelWindow {
 
     function applyActive(lines) {
         var name = "";
+        var hotspot = false;
         for (var i = 0; i < lines.length; i++) {
             var f = wlanMenu.splitTerse(lines[i]);
-            if (f.length >= 2 && f[1] === "802-11-wireless") name = f[0];
+            if (f.length < 2 || f[1] !== "802-11-wireless") continue;
+            if (f[0] === wlanMenu.hotspotConn) hotspot = true;
+            else name = f[0];
         }
         wlanMenu.activeConn = name;
+        wlanMenu.hotspotActive = hotspot;
     }
 
     // ---------- Aktualisieren ----------
@@ -217,6 +228,39 @@ PanelWindow {
         wlanMenu.setStatus("Trenne Verbindung …", false);
         disconnectProc.command = ["env", "LC_ALL=C", "nmcli", "connection", "down", "id", wlanMenu.activeConn];
         disconnectProc.running = true;
+    }
+
+    function startHotspot(ssid, password) {
+        if (wlanMenu.busy) return;
+        if (ssid === "") {
+            wlanMenu.setStatus("Bitte einen Netzwerknamen eingeben", true);
+            return;
+        }
+        if (password.length < 8 || password.length > 63) {
+            wlanMenu.setStatus("Das Passwort muss 8 bis 63 Zeichen lang sein", true);
+            return;
+        }
+        wlanMenu.busy = true;
+        wlanMenu.setStatus("Starte Hotspot …", false);
+        wlanMenu._connectBuf = [];
+        hotspotProc.hotspotSsid = ssid;
+        // Ein altes Profil gleichen Namens zuerst entfernen (kein Fehler, falls
+        // keins existiert). SSID und Passwort kommen als Positionsparameter,
+        // damit Sonderzeichen nicht von der Shell interpretiert werden.
+        hotspotProc.command = ["env", "LC_ALL=C", "sh", "-c",
+            "nmcli connection delete id \"$1\" >/dev/null 2>&1; exec nmcli device wifi hotspot con-name \"$1\" ssid \"$2\" password \"$3\"",
+            "sh", wlanMenu.hotspotConn, ssid, password];
+        hotspotProc.running = true;
+    }
+
+    function stopHotspot() {
+        if (wlanMenu.busy) return;
+        wlanMenu.busy = true;
+        wlanMenu.setStatus("Beende Hotspot …", false);
+        // Loeschen deaktiviert die Verbindung und entfernt das Profil mit
+        // dem gespeicherten Passwort.
+        hotspotStopProc.command = ["env", "LC_ALL=C", "nmcli", "connection", "delete", "id", wlanMenu.hotspotConn];
+        hotspotStopProc.running = true;
     }
 
     function toggleWifi() {
@@ -304,6 +348,33 @@ PanelWindow {
                     msg = "Verbindung fehlgeschlagen";
                 wlanMenu.setStatus(msg, true);
             }
+            wlanMenu.refresh();
+        }
+    }
+
+    Process {
+        id: hotspotProc
+        property string hotspotSsid: ""
+        stdout: SplitParser { onRead: data => wlanMenu._connectBuf.push(data) }
+        stderr: SplitParser { onRead: data => wlanMenu._connectBuf.push(data) }
+        onExited: code => {
+            wlanMenu.busy = false;
+            if (code === 0) {
+                wlanMenu.hotspotFormOpen = false;
+                wlanMenu.setStatus("Hotspot \"" + hotspotProc.hotspotSsid + "\" ist aktiv", false);
+            } else {
+                var msg = wlanMenu._connectBuf.join(" ");
+                wlanMenu.setStatus(msg !== "" ? msg : "Hotspot konnte nicht gestartet werden", true);
+            }
+            wlanMenu.refresh();
+        }
+    }
+
+    Process {
+        id: hotspotStopProc
+        onExited: code => {
+            wlanMenu.busy = false;
+            wlanMenu.setStatus(code === 0 ? "Hotspot beendet" : "Hotspot konnte nicht beendet werden", code !== 0);
             wlanMenu.refresh();
         }
     }
@@ -545,6 +616,97 @@ PanelWindow {
             }
 
             Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
+
+            // Hotspot-Formular
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: wlanMenu.hotspotFormOpen
+                spacing: 6
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Eigenes WLAN-Netz (Hotspot) erstellen. Kann je nach WLAN-Karte die aktuelle WLAN-Verbindung trennen."
+                    color: "#a6adc8"
+                    font.pixelSize: 11
+                    wrapMode: Text.Wrap
+                }
+
+                TextField {
+                    id: hotspotSsidField
+                    Layout.fillWidth: true
+                    placeholderText: "Netzwerkname (SSID)"
+                    text: "NixOS-Hotspot"
+                    Keys.onEscapePressed: event => {
+                        wlanMenu.hotspotFormOpen = false;
+                        event.accepted = true;
+                    }
+                }
+
+                TextField {
+                    id: hotspotPwField
+                    Layout.fillWidth: true
+                    placeholderText: "Passwort (8-63 Zeichen)"
+                    echoMode: TextInput.Password
+                    Keys.onReturnPressed: wlanMenu.startHotspot(hotspotSsidField.text, text)
+                    Keys.onEnterPressed: wlanMenu.startHotspot(hotspotSsidField.text, text)
+                    Keys.onEscapePressed: event => {
+                        wlanMenu.hotspotFormOpen = false;
+                        event.accepted = true;
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 14
+
+                    Item { Layout.fillWidth: true }
+
+                    Text {
+                        text: "Abbrechen"
+                        color: "#a6adc8"
+                        font.pixelSize: 12
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: wlanMenu.hotspotFormOpen = false
+                        }
+                    }
+
+                    Text {
+                        text: "Hotspot starten"
+                        color: "#a6e3a1"
+                        font.pixelSize: 12
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: wlanMenu.startHotspot(hotspotSsidField.text, hotspotPwField.text)
+                        }
+                    }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
+            }
+
+            // Hotspot starten / beenden
+            Text {
+                visible: !wlanMenu.hotspotFormOpen
+                text: wlanMenu.hotspotActive ? "Hotspot beenden" : "Hotspot starten …"
+                color: wlanMenu.hotspotActive ? "#f38ba8" : "#a6e3a1"
+                font.pixelSize: 12
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (wlanMenu.hotspotActive) {
+                            wlanMenu.stopHotspot();
+                        } else {
+                            hotspotPwField.text = "";
+                            wlanMenu.hotspotFormOpen = true;
+                            hotspotPwField.forceActiveFocus();
+                        }
+                    }
+                }
+            }
 
             RowLayout {
                 Layout.fillWidth: true
