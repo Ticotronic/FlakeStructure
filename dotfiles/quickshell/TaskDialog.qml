@@ -218,6 +218,14 @@ PanelWindow {
         NextcloudTasksDAV.closeDialog();
     }
 
+    // Hoehe des Beschreibungsfelds: Inhaltshoehe, mindestens 80, hoechstens
+    // so viel, dass das Panel (530 + Beschreibung [+ 220 Kalender]) mit
+    // 40px Rand noch auf den Bildschirm passt (und nie ueber 320).
+    readonly property int descMinHeight: 80
+    readonly property int descMaxHeight: Math.max(descMinHeight, Math.min(320,
+        dialogWindow.height - 40 - 530 - (dialogWindow.fHasDueDate && dialogWindow.showCalendar ? 220 : 0)))
+    readonly property int descHeight: Math.max(descMinHeight, Math.min(descMaxHeight, Math.ceil(descArea.implicitHeight)))
+
     // Klick-daneben-schliesst-Scrim
     MouseArea {
         anchors.fill: parent
@@ -228,7 +236,7 @@ PanelWindow {
         id: panel
         anchors.centerIn: parent
         width: 420
-        height: 610 + (dialogWindow.fHasDueDate && dialogWindow.showCalendar ? 220 : 0)
+        height: 530 + dialogWindow.descHeight + (dialogWindow.fHasDueDate && dialogWindow.showCalendar ? 220 : 0)
         color: "#1e1e2e"
         border.color: "#313244"
         border.width: 1
@@ -299,13 +307,22 @@ PanelWindow {
                 onTextChanged: dialogWindow.fTitle = text
             }
 
-            TextArea {
+            // Beschreibung: waechst mit dem Inhalt (Minimum descMinHeight);
+            // ab descMaxHeight (begrenzt durch die Bildschirmhoehe) scrollt
+            // das Feld stattdessen.
+            ScrollView {
+                id: descScroll
                 Layout.fillWidth: true
-                Layout.preferredHeight: 80
-                placeholderText: "Beschreibung"
-                text: dialogWindow.fDescription
-                onTextChanged: dialogWindow.fDescription = text
-                wrapMode: TextArea.Wrap
+                Layout.preferredHeight: dialogWindow.descHeight
+                clip: true
+
+                TextArea {
+                    id: descArea
+                    placeholderText: "Beschreibung"
+                    text: dialogWindow.fDescription
+                    onTextChanged: dialogWindow.fDescription = text
+                    wrapMode: TextArea.Wrap
+                }
             }
 
             ColumnLayout {
