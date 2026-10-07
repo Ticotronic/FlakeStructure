@@ -32,6 +32,31 @@ RowLayout {
         anchorItem: wlanLabel
     }
 
+    // Bluetooth: Icon + Name des verbundenen Geraets; Klick oeffnet
+    // BluetoothMenu.qml
+    Text {
+        id: btLabel
+        color: btMouse.containsMouse ? "#89b4fa" : (btMenu.powered ? "#cdd6f4" : "#6c7086")
+        font.pixelSize: 14
+        font.family: "Symbols Nerd Font"
+        text: btMenu.labelText
+
+        MouseArea {
+            id: btMouse
+            anchors.fill: parent
+            anchors.margins: -4
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: btMenu.toggle()
+        }
+    }
+
+    BluetoothMenu {
+        id: btMenu
+        barWindow: root.barWindow
+        anchorItem: btLabel
+    }
+
     // Fallback 100%, damit die Anzeige beim Start (bevor der erste
     // Messwert eintrifft) nicht fälschlich rot blinkt.
     BatteryIndicator {
