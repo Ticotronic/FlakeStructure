@@ -40,3 +40,15 @@ window-rule {
     clip-to-geometry true
 }
 
+// Blur hinter dem Power-Overlay von Quickshell (PowerOverlay.qml, Namespace
+// "qs-power-overlay"). Benoetigt niri >= 26.04.
+// xray false: auch Fenster hinter dem Overlay werden verwischt, nicht nur das
+// Hintergrundbild.
+layer-rule {
+    match namespace="^qs-power-overlay$"
+
+    background-effect {
+        blur true
+        xray false
+    }
+}

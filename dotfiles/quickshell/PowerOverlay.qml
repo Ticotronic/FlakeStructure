@@ -1,8 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 
 PanelWindow {
@@ -16,78 +14,41 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
 
     WlrLayershell.layer: WlrLayer.Overlay
+    // Dieser Namespace wird in dotfiles/niri/cfg/rules.kdl (layer-rule) angesprochen
+    WlrLayershell.namespace: "qs-power-overlay"
     exclusiveZone: -1
 
     // ==========================================
-    // Screenshot des Bildschirms (per grim, vor dem Einblenden des Overlays)
+    // Hintergrund-Blur durch den Compositor (niri >= 26.04)
     // ==========================================
-    // Bewusst kein ScreencopyView: dessen Capture-Puffer haben bei zwei
-    // Monitoren zu einem Absturz in Qt gefuehrt (Quickshell 0.3.0).
-    readonly property string capturePath:
-        (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-power-" + overlay.screen.name + ".ppm"
+    // Kein Screenshot, keine Capture-Puffer: Niri verwischt live alles, was
+    // hinter diesem Fenster liegt (ext-background-effect-v1). Staerke und
+    // Qualitaet kommen aus dem blur-Block in der niri-Konfiguration.
+    // Voraussetzung: das Fenster ist teiltransparent (siehe tintBg).
+    BackgroundEffect.blurRegion: Region { item: overlay.contentItem }
 
-    Image {
-        id: screenCapture
+    // Toenung, deren Deckkraft ein-/ausgeblendet wird. Der Blur selbst steht
+    // sofort, solange das Fenster sichtbar ist (er laesst sich nicht animieren).
+    Rectangle {
+        id: tintBg
         anchors.fill: parent
-        visible: false          // wird nur als Quelle fuer den Blur genutzt
-        cache: false
-        asynchronous: false
-        fillMode: Image.Stretch
+        color: "#1e1e2e"
+        opacity: 0.0
     }
 
-    Process {
-        id: grimProc
-        onExited: code => {
-            if (code === 0) {
-                // Die Datei bleibt liegen, bis das Overlay wieder verschwindet
-                // (siehe onVisibleChanged). Sie sofort zu loeschen war ein Fehler:
-                // der Image-Loader hat sie dann beim grossen 4K-Bild teils
-                // noch nicht fertig gelesen ("Cannot open: ...").
-                screenCapture.source = "file://" + overlay.capturePath;
-            }
-            PowerMenu.captureFinished();
-        }
-    }
-
-    Process { id: cleanupProc }
-
-    Connections {
-        target: PowerMenu
-        function onCaptureRequested() {
-            screenCapture.source = "";
-            // PPM: unkomprimiert, dadurch am schnellsten zu schreiben
-            grimProc.command = ["grim", "-t", "ppm", "-o", overlay.screen.name, overlay.capturePath];
-            grimProc.running = true;
-        }
-    }
-
-    // ==========================================
-    // Blur-Effekt auf den Screenshot anwenden
-    // ==========================================
-    MultiEffect {
-        id: blurEffect
-        anchors.fill: parent
-        source: screenCapture
-        blurEnabled: true
-        blur: 0.0           // wird animiert
-        blurMax: 64
-        autoPaddingEnabled: false
-    }
-
-    // Animiert blurEffect.blur hoch wenn das Overlay erscheint
     NumberAnimation {
-        id: blurAnim
-        target: blurEffect
-        property: "blur"
-        to: 1.0
+        id: tintFadeIn
+        target: tintBg
+        property: "opacity"
+        to: 0.4
         duration: 4500
         easing.type: Easing.OutCubic
     }
 
     NumberAnimation {
-        id: blurAnimOut
-        target: blurEffect
-        property: "blur"
+        id: tintFadeOut
+        target: tintBg
+        property: "opacity"
         to: 0.0
         duration: 200
         easing.type: Easing.InCubic
@@ -95,7 +56,7 @@ PanelWindow {
 
     Timer {
         id: closeTimer
-        interval: blurAnimOut.duration
+        interval: tintFadeOut.duration
         running: false
         repeat: false
         onTriggered: PowerMenu.hideImmediately()
@@ -104,27 +65,22 @@ PanelWindow {
     Connections {
         target: PowerMenu
         function onCloseRequested() {
-            blurAnimOut.start();
+            tintFadeOut.start();
             closeTimer.restart();
         }
     }
 
     onVisibleChanged: {
         if (visible) {
-            blurEffect.blur = 0.0;
-            blurAnim.start();
-        } else {
-            // Overlay ist weg: Screenshot-Datei und Bild im Speicher freigeben
-            screenCapture.source = "";
-            cleanupProc.command = ["rm", "-f", overlay.capturePath];
-            cleanupProc.running = true;
+            tintBg.opacity = 0.0;
+            tintFadeIn.start();
         }
     }
 
-    // Dunkles Tint zusätzlich zum Blur für Glass-Optik
+    // Inhalt (Buttons) ueber der Toenung
     Rectangle {
         anchors.fill: parent
-        color: "#1e1e2e55"
+        color: "transparent"
 
         MouseArea {
             anchors.fill: parent

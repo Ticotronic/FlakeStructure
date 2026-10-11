@@ -9,45 +9,11 @@ Singleton {
     property bool visible: false
     property bool isClosing: false
 
-    // Ablauf beim Oeffnen: show() loest in jedem PowerOverlay (ein Fenster pro
-    // Monitor) einen Screenshot per grim aus (captureRequested). Erst wenn alle
-    // fertig sind (captureFinished) oder nach dem Timeout, werden die Overlays
-    // sichtbar. So gibt es keine ScreencopyView mehr.
-    property bool capturing: false
-    property int pendingCaptures: 0
-
     signal closeRequested()
-    signal captureRequested()
 
     function show() {
-        if (capturing || visible) return;
         isClosing = false;
-        pendingCaptures = Quickshell.screens.length;
-        capturing = true;
-        captureTimeout.restart();
-        captureRequested();
-    }
-
-    // Wird von jedem Overlay aufgerufen, sobald sein Screenshot fertig ist
-    // (auch wenn grim fehlgeschlagen ist: dann gibt es nur die Toenung).
-    function captureFinished() {
-        if (!capturing) return;
-        pendingCaptures--;
-        if (pendingCaptures <= 0) finishCapture();
-    }
-
-    function finishCapture() {
-        captureTimeout.stop();
-        capturing = false;
         visible = true;
-    }
-
-    // Sicherheitsnetz, falls ein Screenshot haengt
-    Timer {
-        id: captureTimeout
-        interval: 2500
-        repeat: false
-        onTriggered: powerMenu.finishCapture()
     }
 
     function hide() {
