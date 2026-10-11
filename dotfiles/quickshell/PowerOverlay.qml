@@ -40,7 +40,7 @@ PanelWindow {
         id: tintFadeIn
         target: tintBg
         property: "opacity"
-        to: 0.4
+        to: 0.8
         duration: 4500
         easing.type: Easing.OutCubic
     }
