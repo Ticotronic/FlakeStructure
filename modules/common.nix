@@ -160,6 +160,17 @@
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
+
+    # GSettings-Schemas systemweit sichtbar machen. Qt nutzt wegen
+    # QT_QPA_PLATFORMTHEME=gtk3 den GTK-Dateidialog ("Datei oeffnen"); GTK
+    # braucht dafuer die Schemas (org.gtk.Settings.FileChooser). Nur mit
+    # wrapGAppsHook gepackte Programme finden sie von selbst - Qt-Apps wie
+    # Haruna nicht, dort bricht GLib sonst mit "No GSettings schemas are
+    # installed on the system" ab. Wirkt erst nach neuem Login.
+    XDG_DATA_DIRS = [
+      "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
+      "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+    ];
   };
 
   environment.variables = {
