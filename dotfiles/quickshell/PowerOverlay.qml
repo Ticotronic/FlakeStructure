@@ -80,7 +80,7 @@ PanelWindow {
         target: blurEffect
         property: "blur"
         to: 1.0
-        duration: 250
+        duration: 4500
         easing.type: Easing.OutCubic
     }
 
