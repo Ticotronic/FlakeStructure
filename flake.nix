@@ -38,6 +38,9 @@
             
             # Hier verbinden wir deinen Benutzer "roljon" mit der neuen Config-Datei
             home-manager.users.roljon = import ./modules/home.nix; 
+            # home.nix nutzt sops (Nextcloud-/Mail-Passwoerter), das Modul muss
+            # also auch hier geladen sein (wie beim razerblade)
+            home-manager.sharedModules = [ sops-nix.homeManagerModules.sops ];
           }
         ];
       };

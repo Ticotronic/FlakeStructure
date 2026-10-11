@@ -45,6 +45,10 @@
 
   programs.dconf.enable = true;
 
+  # swaylock (Power-Menue "Sperren") braucht einen eigenen PAM-Dienst, sonst
+  # lehnt PAM jedes Passwort ab und der Bildschirm laesst sich nicht entsperren.
+  security.pam.services.swaylock = {};
+
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
 #    alacritty
@@ -59,6 +63,7 @@
     swaylock-effects
     vscode
     vlc
+    haruna   # Video-Player (Qt/QML + libmpv)
     catppuccin-sddm
     catppuccin-cursors.macchiatoDark
     p7zip
