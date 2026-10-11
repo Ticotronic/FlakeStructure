@@ -126,6 +126,21 @@
 
   xdg.configFile."quickshell".source = ../dotfiles/quickshell;
 
+  # Haruna: nur die Shortcuts deklarativ verwalten. haruna.conf bleibt absichtlich
+  # unverwaltet, weil Haruna dort Fenstergroesse, Lautstaerke usw. selbst speichert.
+  # Neue Shortcuts: in Haruna einstellen, dann ~/.config/haruna/shortcuts.conf hier
+  # uebernehmen. force = true, weil Haruna die Datei beim Beenden neu schreibt
+  # (ersetzt den Symlink durch eine echte Datei) und HM sonst beim naechsten
+  # Switch wegen "would be clobbered" abbrechen wuerde.
+  #xdg.configFile."haruna/shortcuts.conf" = {
+  #  force = true;
+  #  text = ''
+  #    [Shortcuts]
+  #    playbackSpeedDecreaseAction=-
+  #    playbackSpeedIncreaseAction=+
+  #  '';
+  #};
+
 
   # ==========================================
   # GTK & QT Theming (für Quickshell & Niri)
