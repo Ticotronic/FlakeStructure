@@ -80,6 +80,7 @@
   ### -- ###
   home.packages = with pkgs; [
     quickshell
+    grim   # Screenshot fuer den Blur im Power-Overlay (PowerOverlay.qml)
     wirelesstools
     networkmanager
     curl

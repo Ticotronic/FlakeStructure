@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 
 PanelWindow {
@@ -18,13 +19,46 @@ PanelWindow {
     exclusiveZone: -1
 
     // ==========================================
-    // Live-Screenshot des Bildschirms hinter dem Overlay
+    // Screenshot des Bildschirms (per grim, vor dem Einblenden des Overlays)
     // ==========================================
-    ScreencopyView {
+    // Bewusst kein ScreencopyView: dessen Capture-Puffer haben bei zwei
+    // Monitoren zu einem Absturz in Qt gefuehrt (Quickshell 0.3.0).
+    readonly property string capturePath:
+        (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-power-" + overlay.screen.name + ".ppm"
+
+    Image {
         id: screenCapture
         anchors.fill: parent
-        captureSource: modelData
-        live: false  // einmaliges Standbild reicht, kein Live-Feed nötig
+        visible: false          // wird nur als Quelle fuer den Blur genutzt
+        cache: false
+        asynchronous: false
+        fillMode: Image.Stretch
+    }
+
+    Process {
+        id: grimProc
+        onExited: code => {
+            if (code === 0) {
+                // Die Datei bleibt liegen, bis das Overlay wieder verschwindet
+                // (siehe onVisibleChanged). Sie sofort zu loeschen war ein Fehler:
+                // der Image-Loader hat sie dann beim grossen 4K-Bild teils
+                // noch nicht fertig gelesen ("Cannot open: ...").
+                screenCapture.source = "file://" + overlay.capturePath;
+            }
+            PowerMenu.captureFinished();
+        }
+    }
+
+    Process { id: cleanupProc }
+
+    Connections {
+        target: PowerMenu
+        function onCaptureRequested() {
+            screenCapture.source = "";
+            // PPM: unkomprimiert, dadurch am schnellsten zu schreiben
+            grimProc.command = ["grim", "-t", "ppm", "-o", overlay.screen.name, overlay.capturePath];
+            grimProc.running = true;
+        }
     }
 
     // ==========================================
@@ -79,6 +113,11 @@ PanelWindow {
         if (visible) {
             blurEffect.blur = 0.0;
             blurAnim.start();
+        } else {
+            // Overlay ist weg: Screenshot-Datei und Bild im Speicher freigeben
+            screenCapture.source = "";
+            cleanupProc.command = ["rm", "-f", overlay.capturePath];
+            cleanupProc.running = true;
         }
     }
 
