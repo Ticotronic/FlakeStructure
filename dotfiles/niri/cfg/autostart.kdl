@@ -9,6 +9,9 @@ spawn-at-startup "quickshell"
 // start networkmanager applet at start up
 //spawn-at-startup "nm-applet"
 
+// Nextcloud-Client im Hintergrund (Tray-Icon, synchronisiert z.B. die kdbx-Datei)
+spawn-at-startup "nextcloud" "--background"
+
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
 

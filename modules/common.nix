@@ -49,6 +49,11 @@
   # lehnt PAM jedes Passwort ab und der Bildschirm laesst sich nicht entsperren.
   security.pam.services.swaylock = {};
 
+  # gnome-keyring (kommt mit programs.niri) soll beim SDDM-Login automatisch
+  # entsperrt werden. Der Nextcloud-Client legt sein Passwort dort ab; ohne diese
+  # Zeile fragt der Schluesselbund bei jedem Login einzeln nach.
+  security.pam.services.sddm.enableGnomeKeyring = true;
+
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
 #    alacritty
@@ -64,6 +69,8 @@
     vscode
     vlc
     haruna   # Video-Player (Qt/QML + libmpv)
+    keepassxc          # Passwortmanager (kdbx, kompatibel mit Keepass2Android)
+    nextcloud-client   # Sync der kdbx-Datei (und was du sonst noch magst)
     catppuccin-sddm
     catppuccin-cursors.macchiatoDark
     p7zip
