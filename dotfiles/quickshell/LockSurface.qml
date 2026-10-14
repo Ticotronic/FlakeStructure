@@ -118,16 +118,26 @@ Rectangle {
         }
     }
 
-    // ---- Statuszeile (WLAN, Bluetooth, Akku) ----
-    LockStatusBar {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 56 * root.u
-        ctx: root.ctx
-        u: root.u
+    // ---- Akku oben rechts (dasselbe Symbol wie in der Leiste, nur groesser) ----
+    Item {
+        visible: root.ctx.batPresent
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 40 * root.u
+        anchors.rightMargin: 48 * root.u
+        width: battery.implicitWidth * battery.scale
+        height: battery.implicitHeight * battery.scale
+
+        BatteryIndicator {
+            id: battery
+            scale: 1.6 * root.u
+            transformOrigin: Item.TopLeft
+            percent: root.ctx.batPercent
+            charging: root.ctx.batCharging
+        }
     }
 
-    // ---- Benutzer, Passwortfeld, Statuszeile ----
+    // ---- Benutzer, Passwortfeld, Fehlermeldung ----
     Column {
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height * 0.56

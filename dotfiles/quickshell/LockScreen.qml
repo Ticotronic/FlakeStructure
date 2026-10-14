@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
-import Quickshell.Bluetooth
 
 // Eigener Sperrbildschirm auf Basis von ext-session-lock-v1 (WlSessionLock).
 //
@@ -38,27 +37,10 @@ Scope {
     property bool lockActive: false
     property bool capsLock: false       // Feststelltaste aktiv (LED, s.u.)
 
-    // ---- Daten fuer Statuszeile und Wetter (LockStatusBar.qml, LockSurface.qml) ----
-    property string wlanText: ""        // "<Icon> <Netzname>" von qs-stats
+    // ---- Daten fuer Akku-Anzeige und Wetter (LockSurface.qml) ----
+    property bool batPresent: false     // false z.B. an einem Desktop-Rechner
     property int batPercent: 100
     property bool batCharging: false
-
-    readonly property var btAdapter: Bluetooth.defaultAdapter
-    readonly property bool btPowered: btAdapter !== null && btAdapter.enabled
-    readonly property var btConnected: btAdapter
-        ? btAdapter.devices.values.filter(function (d) { return d.connected; })
-        : []
-    // Icon + Name des verbundenen Geraets ("Name +1" bei mehreren), wie in der Leiste
-    readonly property string btText: {
-        var icon = String.fromCodePoint(!btPowered ? 0xF00B2
-            : btConnected.length > 0 ? 0xF00B1 : 0xF00AF);
-        if (btConnected.length === 0)
-            return icon;
-        var name = btConnected[0].name;
-        if (name.length > 18)
-            name = name.substring(0, 17) + "…";
-        return icon + " " + name + (btConnected.length > 1 ? " +" + (btConnected.length - 1) : "");
-    }
 
     readonly property var weather: lockWeather
 
@@ -222,19 +204,21 @@ Scope {
         id: lockWeather
     }
 
-    // WLAN und Akku: dasselbe Skript wie die Leiste (liefert alle 2 s eine Zeile
-    // "WLAN|Akku%|RAM|CPU|Laden"). Laeuft nur, solange gesperrt ist.
+    // Akku: liest sysfs alle 5 s, nur solange gesperrt ist. Eine Zeile pro Lauf:
+    // "bat <Prozent> <Status>", z.B. "bat 87 Charging"; ohne Akku "bat  ".
     Process {
         running: root.lockActive
-        command: ["qs-stats"]
+        command: ["sh", "-c",
+            'while :; do echo "bat $(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n 1) ' +
+            '$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n 1)"; sleep 5; done']
         stdout: SplitParser {
-            onRead: data => {
-                var parts = data.split("|");
-                if (parts.length === 5) {
-                    root.wlanText = parts[0];
-                    var n = parseInt(parts[1]);
-                    root.batPercent = isNaN(n) ? 100 : n;
-                    root.batCharging = parts[4] === "1";
+            onRead: line => {
+                var parts = line.trim().split(/\s+/);
+                var n = parseInt(parts[1]);
+                root.batPresent = !isNaN(n);
+                if (root.batPresent) {
+                    root.batPercent = n;
+                    root.batCharging = parts[2] === "Charging";
                 }
             }
         }
