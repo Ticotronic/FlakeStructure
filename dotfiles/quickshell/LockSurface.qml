@@ -126,15 +126,13 @@ Rectangle {
         anchors.right: parent.right
         anchors.topMargin: 20 * root.u
         anchors.rightMargin: 24 * root.u
-        width: batteryBox.width + 64 * root.u
-        height: 54 * root.u
+        width: batteryBox.width + 32 * root.u
+        height: 29 * root.u
         radius: height / 2
         color: Qt.rgba(1, 1, 1, 0.10)
         border.width: 1.5
         border.color: Qt.rgba(1, 1, 1, 0.35)
 
-        // Das Symbol ist in Pixeln gebaut, daher wird es mit der Skalierungseinheit
-        // vergroessert (1,45 wie in der frueheren Statuszeile).
         Item {
             id: batteryBox
             anchors.centerIn: parent
