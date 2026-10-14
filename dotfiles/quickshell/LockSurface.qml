@@ -85,6 +85,46 @@ Rectangle {
             color: "#a6adc8"
             font.pixelSize: 30 * root.u
         }
+
+        // Wetter (LockWeather.qml); ohne Daten oder bei veralteten Daten ausgeblendet
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: root.ctx.weather.show
+            width: weatherRow.width
+            height: weatherRow.height + 14 * root.u
+
+            Row {
+                id: weatherRow
+                y: 14 * root.u
+                spacing: 14 * root.u
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.ctx.weather.glyph
+                    color: "#cdd6f4"
+                    font.family: "Symbols Nerd Font"
+                    font.pixelSize: 40 * root.u
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.ctx.weather.temperature + "°C"
+                        + (root.ctx.weather.condition !== "" ? "  ·  " + root.ctx.weather.condition : "")
+                        + (root.ctx.weather.place !== "" ? "  ·  " + root.ctx.weather.place : "")
+                    color: "#cdd6f4"
+                    font.pixelSize: 28 * root.u
+                }
+            }
+        }
+    }
+
+    // ---- Statuszeile (WLAN, Bluetooth, Akku) ----
+    LockStatusBar {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 56 * root.u
+        ctx: root.ctx
+        u: root.u
     }
 
     // ---- Benutzer, Passwortfeld, Statuszeile ----

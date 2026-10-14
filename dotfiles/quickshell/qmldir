@@ -20,6 +20,8 @@ PowerOption 1.0 PowerOption.qml
 singleton LockState 1.0 LockState.qml
 LockScreen 1.0 LockScreen.qml
 LockSurface 1.0 LockSurface.qml
+LockStatusBar 1.0 LockStatusBar.qml
+LockWeather 1.0 LockWeather.qml
 
 singleton LauncherMenu 1.0 LauncherMenu.qml
 LauncherButton 1.0 LauncherButton.qml

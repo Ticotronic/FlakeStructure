@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
+import Quickshell.Bluetooth
 
 // Eigener Sperrbildschirm auf Basis von ext-session-lock-v1 (WlSessionLock).
 //
@@ -37,6 +38,30 @@ Scope {
     property bool lockActive: false
     property bool capsLock: false       // Feststelltaste aktiv (LED, s.u.)
 
+    // ---- Daten fuer Statuszeile und Wetter (LockStatusBar.qml, LockSurface.qml) ----
+    property string wlanText: ""        // "<Icon> <Netzname>" von qs-stats
+    property int batPercent: 100
+    property bool batCharging: false
+
+    readonly property var btAdapter: Bluetooth.defaultAdapter
+    readonly property bool btPowered: btAdapter !== null && btAdapter.enabled
+    readonly property var btConnected: btAdapter
+        ? btAdapter.devices.values.filter(function (d) { return d.connected; })
+        : []
+    // Icon + Name des verbundenen Geraets ("Name +1" bei mehreren), wie in der Leiste
+    readonly property string btText: {
+        var icon = String.fromCodePoint(!btPowered ? 0xF00B2
+            : btConnected.length > 0 ? 0xF00B1 : 0xF00AF);
+        if (btConnected.length === 0)
+            return icon;
+        var name = btConnected[0].name;
+        if (name.length > 18)
+            name = name.substring(0, 17) + "…";
+        return icon + " " + name + (btConnected.length > 1 ? " +" + (btConnected.length - 1) : "");
+    }
+
+    readonly property var weather: lockWeather
+
     // Tippen blendet die Fehlermeldung wieder aus. (Beim Fehlschlag wird erst
     // der Text geleert und danach showFailure gesetzt, die Reihenfolge zaehlt.)
     onCurrentTextChanged: showFailure = false
@@ -46,6 +71,7 @@ Scope {
         if (lockActive || preparing)
             return;
         preparing = true;
+        lockWeather.refreshIfOld();
         currentText = "";
         showFailure = false;
         busy = false;
@@ -188,6 +214,28 @@ Scope {
                 if (on !== root.capsLock)
                     console.info("Sperrbildschirm: Caps-Lock-LED " + (on ? "an" : "aus") + " (" + line + ")");
                 root.capsLock = on;
+            }
+        }
+    }
+
+    LockWeather {
+        id: lockWeather
+    }
+
+    // WLAN und Akku: dasselbe Skript wie die Leiste (liefert alle 2 s eine Zeile
+    // "WLAN|Akku%|RAM|CPU|Laden"). Laeuft nur, solange gesperrt ist.
+    Process {
+        running: root.lockActive
+        command: ["qs-stats"]
+        stdout: SplitParser {
+            onRead: data => {
+                var parts = data.split("|");
+                if (parts.length === 5) {
+                    root.wlanText = parts[0];
+                    var n = parseInt(parts[1]);
+                    root.batPercent = isNaN(n) ? 100 : n;
+                    root.batCharging = parts[4] === "1";
+                }
             }
         }
     }
