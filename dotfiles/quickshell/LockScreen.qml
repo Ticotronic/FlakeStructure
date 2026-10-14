@@ -31,7 +31,11 @@ Scope {
     property string failureText: ""
     property int failCount: 0
     property bool preparing: false      // Screenshots laufen noch
-    property bool capsLock: false       // Feststelltaste aktiv (siehe capsProc)
+    // Eigener Zustand "gesperrt", bewusst nicht von sessionLock.locked abgeleitet:
+    // so haengen Bindings (LockState, Caps-Lock-Abfrage) nicht davon ab, ob und
+    // wann WlSessionLock seine Aenderungssignale sendet.
+    property bool lockActive: false
+    property bool capsLock: false       // Feststelltaste aktiv (LED, s.u.)
 
     // Tippen blendet die Fehlermeldung wieder aus. (Beim Fehlschlag wird erst
     // der Text geleert und danach showFailure gesetzt, die Reihenfolge zaehlt.)
@@ -39,7 +43,7 @@ Scope {
 
     // ---- Sperren starten ----
     function startLock() {
-        if (sessionLock.locked || preparing)
+        if (lockActive || preparing)
             return;
         preparing = true;
         currentText = "";
@@ -66,6 +70,8 @@ Scope {
         preparing = false;
         failsafe.stop();
         sessionLock.locked = true;
+        lockActive = true;
+        console.info("Sperrbildschirm: gesperrt");
     }
 
     function tryUnlock() {
@@ -82,6 +88,9 @@ Scope {
 
     function finishUnlock() {
         sessionLock.locked = false;
+        lockActive = false;
+        capsLock = false;
+        console.info("Sperrbildschirm: entsperrt");
         currentText = "";
         busy = false;
         showFailure = false;
@@ -156,7 +165,7 @@ Scope {
     Binding {
         target: LockState
         property: "locked"
-        value: sessionLock.locked || root.preparing
+        value: root.lockActive || root.preparing
     }
     Binding {
         target: LockState
@@ -167,23 +176,19 @@ Scope {
     // ---- Feststelltaste ----
     // Quickshell hat keine Tastaturstatus-API. Der Kernel zeigt die LED aber
     // unter /sys/class/leds/*::capslock/brightness (0/1) - auch fuer externe
-    // Tastaturen. Gelesen wird nur, solange gesperrt ist.
+    // Tastaturen. Solange gesperrt ist, laeuft eine kleine Schleife, die alle
+    // 0,3 s eine Zeile "led <Werte>" ausgibt (z.B. "led 0" oder "led 1").
     Process {
-        id: capsProc
-        command: ["sh", "-c", "cat /sys/class/leds/*::capslock/brightness 2>/dev/null"]
-        stdout: StdioCollector {
-            onStreamFinished: root.capsLock = text.indexOf("1") >= 0
-        }
-    }
-
-    Timer {
-        interval: 300
-        repeat: true
-        running: sessionLock.locked
-        triggeredOnStart: true
-        onTriggered: {
-            if (!capsProc.running)
-                capsProc.running = true;
+        running: root.lockActive
+        command: ["sh", "-c",
+            'while :; do echo "led $(cat /sys/class/leds/*::capslock/brightness 2>/dev/null)"; sleep 0.3; done']
+        stdout: SplitParser {
+            onRead: line => {
+                var on = line.indexOf("1") >= 0;
+                if (on !== root.capsLock)
+                    console.info("Sperrbildschirm: Caps-Lock-LED " + (on ? "an" : "aus") + " (" + line + ")");
+                root.capsLock = on;
+            }
         }
     }
 
