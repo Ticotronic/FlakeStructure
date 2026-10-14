@@ -118,22 +118,36 @@ Rectangle {
         }
     }
 
-    // ---- Akku oben rechts (dasselbe Symbol wie in der Leiste, nur groesser) ----
-    Item {
+    // ---- Akku oben rechts, eingefasst im selben Look wie das Passwortfeld ----
+    Rectangle {
+        id: batteryPill
         visible: root.ctx.batPresent
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: 40 * root.u
-        anchors.rightMargin: 48 * root.u
-        width: battery.implicitWidth * battery.scale
-        height: battery.implicitHeight * battery.scale
+        anchors.topMargin: 20 * root.u
+        anchors.rightMargin: 24 * root.u
+        width: batteryBox.width + 64 * root.u
+        height: 54 * root.u
+        radius: height / 2
+        color: Qt.rgba(1, 1, 1, 0.10)
+        border.width: 1.5
+        border.color: Qt.rgba(1, 1, 1, 0.35)
 
-        BatteryIndicator {
-            id: battery
-            scale: 1.6 * root.u
-            transformOrigin: Item.TopLeft
-            percent: root.ctx.batPercent
-            charging: root.ctx.batCharging
+        // Das Symbol ist in Pixeln gebaut, daher wird es mit der Skalierungseinheit
+        // vergroessert (1,45 wie in der frueheren Statuszeile).
+        Item {
+            id: batteryBox
+            anchors.centerIn: parent
+            width: battery.implicitWidth * battery.scale
+            height: battery.implicitHeight * battery.scale
+
+            BatteryIndicator {
+                id: battery
+                scale: 1.0 * root.u
+                transformOrigin: Item.TopLeft
+                percent: root.ctx.batPercent
+                charging: root.ctx.batCharging
+            }
         }
     }
 
