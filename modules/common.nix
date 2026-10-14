@@ -49,6 +49,9 @@
   # lehnt PAM jedes Passwort ab und der Bildschirm laesst sich nicht entsperren.
   security.pam.services.swaylock = {};
 
+  # PAM-Dienst fuer den eigenen Quickshell-Sperrbildschirm (LockScreen.qml)
+  security.pam.services.quickshell-lock = {};
+
   # gnome-keyring (kommt mit programs.niri) soll beim SDDM-Login automatisch
   # entsperrt werden. Der Nextcloud-Client legt sein Passwort dort ab; ohne diese
   # Zeile fragt der Schluesselbund bei jedem Login einzeln nach.
@@ -66,6 +69,7 @@
     nemo
     yazi
     swaylock-effects
+    grim   # Screenshot als Hintergrund des Sperrbildschirms (LockScreen.qml)
     vscode
     vlc
     haruna   # Video-Player (Qt/QML + libmpv)

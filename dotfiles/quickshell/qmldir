@@ -17,6 +17,10 @@ PowerOverlay 1.0 PowerOverlay.qml
 PowerButton 1.0 PowerButton.qml
 PowerOption 1.0 PowerOption.qml
 
+singleton LockState 1.0 LockState.qml
+LockScreen 1.0 LockScreen.qml
+LockSurface 1.0 LockSurface.qml
+
 singleton LauncherMenu 1.0 LauncherMenu.qml
 LauncherButton 1.0 LauncherButton.qml
 Launcher 1.0 Launcher.qml

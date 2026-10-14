@@ -200,6 +200,16 @@ ShellRoot {
         delegate: PowerOverlay {}
     }
 
+    // Eigener Sperrbildschirm (ext-session-lock). Bewusst ueber einen LazyLoader
+    // mit URL statt als direkter Typ: Fehlt in diesem Quickshell-Build das
+    // PAM-Modul oder gibt es einen Fehler in LockScreen.qml, faellt nur der
+    // Sperrbildschirm aus (LockState.lock() nutzt dann swaylock) und nicht die
+    // ganze Shell. (Ein normaler Loader kann keine nicht-visuellen Objekte laden.)
+    LazyLoader {
+        source: Qt.resolvedUrl("LockScreen.qml")
+        active: true
+    }
+
     // Shortcut zum Öffnen (Super+D)
     // Da IpcHandler bereits vorhanden: in Niri config ergänzen:
     // Super+D { spawn "qs" "ipc" "call" "launcher" "open"; }

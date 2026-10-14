@@ -29,7 +29,7 @@ Singleton {
     }
 
     // ==========================================
-    // Aktionen — hier später den Lockscreen ersetzen
+    // Aktionen
     // ==========================================
     function shutdown() {
         hide();
@@ -48,8 +48,15 @@ Singleton {
 
     function lock() {
         hide();
-        // TODO: durch eigenen Quickshell-Lockscreen ersetzen
-        // Platzhalter aktuell: swaylock
-        Quickshell.execDetached(["swaylock"]);
+        // Erst sperren, wenn das Power-Overlay ausgeblendet ist - sonst landet es
+        // mit im Screenshot, der dem Sperrbildschirm als Hintergrund dient.
+        lockDelay.restart();
+    }
+
+    Timer {
+        id: lockDelay
+        interval: 450
+        repeat: false
+        onTriggered: LockState.lock()
     }
 }
