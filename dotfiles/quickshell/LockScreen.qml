@@ -31,6 +31,7 @@ Scope {
     property string failureText: ""
     property int failCount: 0
     property bool preparing: false      // Screenshots laufen noch
+    property bool capsLock: false       // Feststelltaste aktiv (siehe capsProc)
 
     // Tippen blendet die Fehlermeldung wieder aus. (Beim Fehlschlag wird erst
     // der Text geleert und danach showFailure gesetzt, die Reihenfolge zaehlt.)
@@ -149,6 +150,41 @@ Scope {
     Connections {
         target: LockState
         function onLockRequested() { root.startLock(); }
+    }
+
+    // Zustand fuer LockTriggers.qml (Suspend wartet auf "secure")
+    Binding {
+        target: LockState
+        property: "locked"
+        value: sessionLock.locked || root.preparing
+    }
+    Binding {
+        target: LockState
+        property: "secure"
+        value: sessionLock.secure
+    }
+
+    // ---- Feststelltaste ----
+    // Quickshell hat keine Tastaturstatus-API. Der Kernel zeigt die LED aber
+    // unter /sys/class/leds/*::capslock/brightness (0/1) - auch fuer externe
+    // Tastaturen. Gelesen wird nur, solange gesperrt ist.
+    Process {
+        id: capsProc
+        command: ["sh", "-c", "cat /sys/class/leds/*::capslock/brightness 2>/dev/null"]
+        stdout: StdioCollector {
+            onStreamFinished: root.capsLock = text.indexOf("1") >= 0
+        }
+    }
+
+    Timer {
+        interval: 300
+        repeat: true
+        running: sessionLock.locked
+        triggeredOnStart: true
+        onTriggered: {
+            if (!capsProc.running)
+                capsProc.running = true;
+        }
     }
 
     // qs ipc call lockscreen activate   (Tastenkuerzel in niri/cfg/keybinds.kdl)

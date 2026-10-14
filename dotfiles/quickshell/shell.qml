@@ -210,6 +210,13 @@ ShellRoot {
         active: true
     }
 
+    // Automatisches Sperren (Inaktivitaet, vor dem Suspend), eigener Loader aus
+    // demselben Grund. Einstellungen stehen oben in LockTriggers.qml.
+    LazyLoader {
+        source: Qt.resolvedUrl("LockTriggers.qml")
+        active: true
+    }
+
     // Shortcut zum Öffnen (Super+D)
     // Da IpcHandler bereits vorhanden: in Niri config ergänzen:
     // Super+D { spawn "qs" "ipc" "call" "launcher" "open"; }

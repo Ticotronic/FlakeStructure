@@ -1,0 +1,7 @@
+// Deckel zuklappen -> Bildschirm sperren (Quickshell-Sperrbildschirm, sonst swaylock).
+// Das greift auch im Dock-Betrieb mit externem Monitor, wo logind den Deckel
+// ignoriert. Den internen Monitor schaltet Niri selbst aus und wieder an.
+// Hinweis: switch-events unterstuetzt nur "spawn" (kein spawn-sh), daher sh -c.
+switch-events {
+    lid-close { spawn "sh" "-c" "qs ipc call lockscreen activate || swaylock"; }
+}

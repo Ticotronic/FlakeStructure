@@ -12,6 +12,11 @@ Singleton {
     // fehlt), faellt lock() auf swaylock zurueck, statt wirkungslos zu bleiben.
     property bool available: false
 
+    // Von LockScreen.qml gepflegt: gesperrt (oder Sperre laeuft gerade an) bzw.
+    // vom Compositor als gesperrt bestaetigt.
+    property bool locked: false
+    property bool secure: false
+
     signal lockRequested()
 
     function lock() {

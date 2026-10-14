@@ -182,8 +182,9 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             height: 26 * root.u
-            text: root.ctx.showFailure ? root.ctx.failureText : ""
-            color: "#f38ba8"
+            text: root.ctx.showFailure ? root.ctx.failureText
+                : (root.ctx.capsLock ? "⇪  Feststelltaste ist aktiv" : "")
+            color: root.ctx.showFailure ? "#f38ba8" : "#f9e2af"
             font.pixelSize: 20 * root.u
         }
     }
