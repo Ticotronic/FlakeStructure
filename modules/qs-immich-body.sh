@@ -34,12 +34,11 @@ case "${cmd}" in
     [[ "${date}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "ungueltiges Datum" >&2; exit 2; }
     [[ "${back}" =~ ^[0-9]+$ ]] || { echo "ungueltige Jahreszahl" >&2; exit 2; }
     now="${date%%-*}"
-    # Mittags (UTC) des lokalen Datums, damit die Zeitzone des Servers den Tag nicht verschiebt
 
     api_header | "${IMMICH_CURL}" -fsS --connect-timeout 2 -m 10 -H @- -G \
         "${IMMICH_URL}/api/memories" \
         --data-urlencode "type=on_this_day" \
-        --data-urlencode "for=${date}T12:00:00.000Z" \
+        --data-urlencode "for=${date}" \
       | "${IMMICH_JQ}" -c --argjson now "${now}" --argjson back "${back}" '
           [ .[]
             | select(.type == "on_this_day" and .data.year != null)
