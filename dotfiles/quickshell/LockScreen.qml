@@ -43,6 +43,7 @@ Scope {
     property bool batCharging: false
 
     readonly property var weather: lockWeather
+    readonly property var memories: lockMemories
 
     // Tippen blendet die Fehlermeldung wieder aus. (Beim Fehlschlag wird erst
     // der Text geleert und danach showFailure gesetzt, die Reihenfolge zaehlt.)
@@ -54,6 +55,7 @@ Scope {
             return;
         preparing = true;
         lockWeather.refreshIfOld();
+        lockMemories.prepare();
         currentText = "";
         showFailure = false;
         busy = false;
@@ -102,6 +104,8 @@ Scope {
         currentText = "";
         busy = false;
         showFailure = false;
+        lockMemories.reset();
+        lockMemories.clearCache();
         // Screenshots wieder entfernen
         Quickshell.execDetached(["sh", "-c", 'rm -f "${XDG_RUNTIME_DIR:-/tmp}"/qs-lock-*.ppm']);
     }
@@ -202,6 +206,11 @@ Scope {
 
     LockWeather {
         id: lockWeather
+    }
+
+    // Immich-Erinnerungen "An diesem Tag" (nur sichtbar, wenn Immich erreichbar ist)
+    LockMemories {
+        id: lockMemories
     }
 
     // Akku: liest sysfs alle 5 s, nur solange gesperrt ist. Eine Zeile pro Lauf:

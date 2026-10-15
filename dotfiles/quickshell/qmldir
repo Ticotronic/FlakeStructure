@@ -21,6 +21,9 @@ singleton LockState 1.0 LockState.qml
 LockScreen 1.0 LockScreen.qml
 LockSurface 1.0 LockSurface.qml
 LockWeather 1.0 LockWeather.qml
+LockMemories 1.0 LockMemories.qml
+LockPhoto 1.0 LockPhoto.qml
+LockMemoryWidget 1.0 LockMemoryWidget.qml
 
 singleton LauncherMenu 1.0 LauncherMenu.qml
 LauncherButton 1.0 LauncherButton.qml

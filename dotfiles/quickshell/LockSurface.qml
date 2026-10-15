@@ -48,10 +48,14 @@ Rectangle {
         Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
     }
 
-    // Klick irgendwo = Fokus auf das Passwortfeld
+    // Klick irgendwo = Fokus auf das Passwortfeld (und die geoeffnete Erinnerung
+    // wieder zur Vorschau-Leiste verkleinern)
     MouseArea {
         anchors.fill: parent
-        onClicked: input.forceActiveFocus()
+        onClicked: {
+            input.forceActiveFocus();
+            root.ctx.memories.close();
+        }
     }
 
     // ---- Uhr und Datum ----
@@ -249,5 +253,15 @@ Rectangle {
             color: root.ctx.showFailure ? "#f38ba8" : "#f9e2af"
             font.pixelSize: 20 * root.u
         }
+    }
+
+    // ---- Immich-Erinnerungen unten links (liegt ueber dem Klick-Bereich oben) ----
+    LockMemoryWidget {
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: 40 * root.u
+        anchors.bottomMargin: 40 * root.u
+        memories: root.ctx.memories
+        u: root.u
     }
 }

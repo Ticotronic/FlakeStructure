@@ -50,6 +50,9 @@
   sops.defaultSopsFile = ../secrets/passwords.yaml;
   sops.secrets."gmx_rj" = {};
   sops.secrets."nextcloud_caldav" = {};
+  # Immich-API-Schluessel (nur Rechte memory.read + asset.view) fuer den Sperrbildschirm.
+  # ERST in secrets/passwords.yaml eintragen (sops secrets/passwords.yaml), dann bauen!
+  sops.secrets."immich_api_key" = {};
 
   accounts.email.accounts = {
     "r.jongebloed@gmx.de" = {
@@ -85,6 +88,15 @@
     curl
 
     (pkgs.writeShellScriptBin "qs-stats" (builtins.readFile ./qs-stats.sh))
+
+    # Immich-Erinnerungen "An diesem Tag" fuer den Sperrbildschirm (LockMemories.qml)
+    (pkgs.writeShellScriptBin "qs-immich" ''
+      export IMMICH_URL="http://192.168.0.145:30041"
+      export IMMICH_KEY_FILE="${config.sops.secrets."immich_api_key".path}"
+      export IMMICH_JQ="${pkgs.jq}/bin/jq"
+      export IMMICH_CURL="${pkgs.curl}/bin/curl"
+      ${builtins.readFile ./qs-immich-body.sh}
+    '')
 
     (pkgs.writeShellScriptBin "nextcloud-caldav-fetch" ''
       export NEXTCLOUD_SERVER_URL="https://nc-on-tn.myhome-server.de"
