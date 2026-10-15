@@ -27,6 +27,9 @@ Scope {
     property double checkedMs: 0
 
     // ---- Betrachter (gemeinsam fuer alle Monitore) ----
+    // Beim Sperren sind die Vorschaubilder verwischt; der erste Klick loest die
+    // Unschaerfe auf (Schutz vor neugierigen Blicken), erst danach oeffnet ein Klick ein Jahr.
+    property bool revealed: false
     property int openIndex: -1              // -1 = nur die Vorschau-Leiste
     property int pos: 0                     // Bild innerhalb des Jahres
     readonly property var currentItem:
@@ -81,6 +84,7 @@ Scope {
     // wieder geantwortet hat.
     function prepare() {
         reset();
+        revealed = false;
         if (Date.now() - checkedMs > freshSeconds * 1000)
             available = false;
         refresh();
@@ -89,7 +93,10 @@ Scope {
     function listDone(code, text) {
         if (code !== 0) {
             available = false;
-            console.info("Sperrbildschirm-Erinnerungen: Immich nicht erreichbar (Code " + code + ")");
+            // Erwartet (still): 3 = Netz nicht freigegeben, 6/7/28 = Immich nicht erreichbar.
+            // Alles andere (z.B. 22 = HTTP-Fehler, 26 = Datei) ist ein Fehler, den man sehen will.
+            if (code !== 3 && code !== 6 && code !== 7 && code !== 28)
+                console.warn("Sperrbildschirm-Erinnerungen: Abfrage fehlgeschlagen (Code " + code + ")");
             return;
         }
         var parsed = null;
@@ -110,7 +117,6 @@ Scope {
         }
         checkedMs = Date.now();
         available = items.length > 0;
-        console.info("Sperrbildschirm-Erinnerungen: " + items.length + " Jahre");
         // erstes Bild jedes Jahres fuer die Vorschau-Leiste laden
         for (var i = 0; i < items.length; i++)
             ensure(items[i].assets[0].id, false);
@@ -275,7 +281,13 @@ Scope {
     }
 
     // ---- Bedienung ----
+    function reveal() {
+        revealed = true;
+    }
+
     function open(index) {
+        if (!revealed)
+            return;
         if (index < 0 || index >= items.length)
             return;
         openIndex = index;
@@ -314,6 +326,7 @@ Scope {
         if (fetchProc.running)
             fetchProc.running = false;
         cancelVideo();
+        revealed = false;
         have = {};
         failedIds = {};
         videoHave = {};

@@ -81,7 +81,6 @@ Scope {
         failsafe.stop();
         sessionLock.locked = true;
         lockActive = true;
-        console.info("Sperrbildschirm: gesperrt");
     }
 
     function tryUnlock() {
@@ -100,7 +99,6 @@ Scope {
         sessionLock.locked = false;
         lockActive = false;
         capsLock = false;
-        console.info("Sperrbildschirm: entsperrt");
         currentText = "";
         busy = false;
         showFailure = false;
@@ -195,12 +193,7 @@ Scope {
         command: ["sh", "-c",
             'while :; do echo "led $(cat /sys/class/leds/*::capslock/brightness 2>/dev/null)"; sleep 0.3; done']
         stdout: SplitParser {
-            onRead: line => {
-                var on = line.indexOf("1") >= 0;
-                if (on !== root.capsLock)
-                    console.info("Sperrbildschirm: Caps-Lock-LED " + (on ? "an" : "aus") + " (" + line + ")");
-                root.capsLock = on;
-            }
+            onRead: line => root.capsLock = line.indexOf("1") >= 0
         }
     }
 

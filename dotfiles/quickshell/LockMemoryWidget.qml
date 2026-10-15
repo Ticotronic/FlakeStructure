@@ -3,9 +3,11 @@ import QtQuick
 // Immich-Erinnerungen unten links auf dem Sperrbildschirm.
 //
 //  - Vorschau-Leiste: bis zu 5 Kacheln ("Vor einem Jahr", ...) mit dem ersten Bild
+//  - Beim Sperren sind die Bilder verwischt; der erste Klick loest das auf
 //  - Klick auf eine Kachel: dieses Jahr als groessere Karte
 //  - Karte, rechte Haelfte: naechstes Bild desselben Jahres, linke Haelfte: vorheriges
-//  - Klick neben die Anzeige: zurueck zur Leiste (siehe LockSurface.qml)
+//  - Klick neben die Anzeige oder Esc: zurueck zur Leiste (siehe LockSurface.qml)
+//  - Alt+Pfeil rechts/links: naechstes/vorheriges Bild (ebenfalls LockSurface.qml)
 // Ohne erreichbares Immich (memories.available == false) ist alles ausgeblendet.
 Item {
     id: root
@@ -39,7 +41,7 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
         Text {
-            text: "An diesem Tag"
+            text: root.memories.revealed ? "An diesem Tag" : "An diesem Tag  ·  zum Anzeigen klicken"
             color: "#a6adc8"
             font.pixelSize: 19 * root.u
             leftPadding: 4 * root.u
@@ -67,6 +69,7 @@ Item {
                         u: root.u
                         source: root.memories.fileUrl(tile.firstId)
                         failed: root.memories.loadState(tile.firstId) === 2
+                        blurred: !root.memories.revealed
                     }
 
                     Text {
@@ -82,7 +85,13 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.memories.open(tile.index)
+                        // erster Klick: Unschaerfe aufloesen, danach oeffnet ein Klick das Jahr
+                        onClicked: {
+                            if (root.memories.revealed)
+                                root.memories.open(tile.index);
+                            else
+                                root.memories.reveal();
+                        }
                     }
                 }
             }

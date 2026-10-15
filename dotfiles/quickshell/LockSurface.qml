@@ -230,7 +230,27 @@ Rectangle {
 
                 onTextEdited: root.ctx.currentText = text
                 onAccepted: root.ctx.tryUnlock()
-                Keys.onEscapePressed: root.ctx.currentText = ""
+                // Erinnerungen per Tastatur: Alt+Pfeil blaettert, Esc schliesst die
+                // geoeffnete Karte (sonst loescht Esc wie bisher das Passwort)
+                Keys.onPressed: event => {
+                    var mem = root.ctx.memories;
+                    if ((event.modifiers & Qt.AltModifier) && mem.currentItem !== null) {
+                        if (event.key === Qt.Key_Right) {
+                            mem.next();
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Left) {
+                            mem.prev();
+                            event.accepted = true;
+                        }
+                    }
+                }
+                Keys.onEscapePressed: event => {
+                    if (root.ctx.memories.currentItem !== null)
+                        root.ctx.memories.close();
+                    else
+                        root.ctx.currentText = "";
+                    event.accepted = true;
+                }
 
                 // Alle Monitore zeigen denselben Text
                 Connections {

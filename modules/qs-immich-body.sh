@@ -7,7 +7,8 @@
 #       [{"year":2025,"assets":[{"id":"...","type":"IMAGE"},...]}, ...]
 #       Exit-Code != 0, wenn Immich nicht erreichbar ist (z.B. ausserhalb des
 #       Heimnetzes ohne VPN) - das nutzt der Sperrbildschirm, um die Anzeige zu
-#       verbergen.
+#       verbergen. Exit-Code 3: das aktuelle Netz ist nicht freigegeben (s.u.),
+#       es wurde gar nicht erst eine Verbindung aufgebaut.
 #   qs-immich fetch <asset-id> <zieldatei>
 #       Laedt das Vorschaubild (size=preview) eines Assets in die Zieldatei.
 #       Bei Videos liefert Immich das Vorschaubild des Videos.
@@ -20,6 +21,10 @@
 #   IMMICH_KEY_FILE   Pfad zur sops-entschluesselten API-Schluessel-Datei
 #   IMMICH_JQ         Pfad zu jq
 #   IMMICH_CURL       Pfad zu curl
+#   IMMICH_IP         Pfad zu ip (iproute2)
+#   IMMICH_IWGETID    Pfad zu iwgetid (wirelesstools)
+#   IMMICH_HOME_SSIDS erlaubte Heim-WLANs, eine SSID pro Zeile
+#   IMMICH_VPN_IFACES erlaubte VPN-Interfaces, durch Leerzeichen getrennt (z.B. "wg0")
 # Der Schluessel braucht in Immich nur die Rechte "memory.read" und "asset.view".
 set -euo pipefail
 
@@ -29,7 +34,35 @@ api_header() {
   printf 'x-api-key: %s\n' "$(cat "${IMMICH_KEY_FILE}")"
 }
 
+# Netz-Pruefung: Der API-Schluessel geht per HTTP raus, darum nur dann, wenn wir
+# sicher im Heimnetz oder im VPN sind. In einem fremden Netz mit gleichem
+# Adressbereich (192.168.0.x) wuerde sonst ein fremdes Geraet den Schluessel erhalten.
+#   - Weg zum Server fuehrt ueber ein VPN-Interface (IMMICH_VPN_IFACES), oder
+#   - das WLAN hat eine SSID aus IMMICH_HOME_SSIDS (eine pro Zeile).
+# Sonst Exit-Code 3, ganz ohne Verbindung zum Server.
+network_ok() {
+  local host dev ssid s v
+  host="${IMMICH_URL#*://}"
+  host="${host%%[:/]*}"
+  dev="$("${IMMICH_IP}" -o route get "${host}" 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -n 1)" || true
+  [[ -n "${dev}" ]] || return 1
+  for v in ${IMMICH_VPN_IFACES:-}; do
+    [[ "${dev}" == "${v}" ]] && return 0
+  done
+  ssid="$("${IMMICH_IWGETID}" -r 2>/dev/null)" || true
+  [[ -n "${ssid}" ]] || return 1
+  while IFS= read -r s; do
+    [[ -n "${s}" && "${s}" == "${ssid}" ]] && return 0
+  done <<< "${IMMICH_HOME_SSIDS:-}"
+  return 1
+}
+
 cmd="${1:-}"
+case "${cmd}" in
+  memories|fetch|video)
+    network_ok || { echo "Netz nicht freigegeben (weder Heim-WLAN noch VPN)" >&2; exit 3; }
+    ;;
+esac
 case "${cmd}" in
   memories)
     date="${2:?Datum YYYY-MM-DD fehlt}"

@@ -107,6 +107,12 @@
       export IMMICH_KEY_FILE="${config.sops.secrets."immich_api_key".path}"
       export IMMICH_JQ="${pkgs.jq}/bin/jq"
       export IMMICH_CURL="${pkgs.curl}/bin/curl"
+      export IMMICH_IP="${pkgs.iproute2}/bin/ip"
+      export IMMICH_IWGETID="${pkgs.wirelesstools}/bin/iwgetid"
+      # Der API-Schluessel wird nur im Heim-WLAN oder ueber das VPN gesendet.
+      # HIER DEINE(N) WLAN-NAMEN EINTRAGEN (mehrere: weitere Strings in die Liste):
+      export IMMICH_HOME_SSIDS=${pkgs.lib.escapeShellArg (pkgs.lib.concatStringsSep "\n" [ "FRITZ!Box 6690 JB" ])}
+      export IMMICH_VPN_IFACES="wg0"
       ${builtins.readFile ./qs-immich-body.sh}
     '')
 

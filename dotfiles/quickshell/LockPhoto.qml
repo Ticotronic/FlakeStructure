@@ -13,6 +13,7 @@ Item {
     property bool failed: false
     property color backdrop: Qt.rgba(1, 1, 1, 0.08)   // Hintergrund / Balken bei PreserveAspectFit
     property bool outline: true
+    property bool blurred: false    // verwischt (Sichtschutz), loest sich animiert auf
 
     readonly property bool ready: img.status === Image.Ready
 
@@ -50,6 +51,10 @@ Item {
         maskEnabled: true
         maskSource: mask
         autoPaddingEnabled: false
+        blurEnabled: blur > 0.001
+        blurMax: 48
+        blur: root.blurred ? 1.0 : 0.0
+        Behavior on blur { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
         opacity: root.ready ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
     }
