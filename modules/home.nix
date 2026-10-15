@@ -82,7 +82,19 @@
 
   ### -- ###
   home.packages = with pkgs; [
-    quickshell
+    # Quickshell mit QtMultimedia: das nixpkgs-Paket bringt es nicht mit, wird aber
+    # fuer die Video-Wiedergabe der Immich-Erinnerungen (LockVideo.qml) gebraucht.
+    # Nur ein Wrapper um das normale Paket, es wird nichts neu kompiliert.
+    (pkgs.symlinkJoin {
+      name = "quickshell-multimedia";
+      paths = [ pkgs.quickshell ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/quickshell \
+          --prefix QML2_IMPORT_PATH : ${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtQmlPrefix} \
+          --prefix QT_PLUGIN_PATH : ${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}
+      '';
+    })
     wirelesstools
     networkmanager
     curl

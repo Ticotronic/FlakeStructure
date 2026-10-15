@@ -11,6 +11,9 @@
 #   qs-immich fetch <asset-id> <zieldatei>
 #       Laedt das Vorschaubild (size=preview) eines Assets in die Zieldatei.
 #       Bei Videos liefert Immich das Vorschaubild des Videos.
+#   qs-immich video <asset-id> <zieldatei>
+#       Laedt das abspielbare Video (Immichs /video/playback) komplett in die
+#       Zieldatei (max. 500 MB, max. 10 Minuten).
 #
 # Erwartet folgende Umgebungsvariablen (werden vom Nix-Wrapper gesetzt):
 #   IMMICH_URL        z.B. http://192.168.0.145:30041
@@ -63,8 +66,20 @@ case "${cmd}" in
     mv -f "${tmp}" "${out}"
     ;;
 
+  video)
+    id="${2:?Asset-ID fehlt}"
+    out="${3:?Zieldatei fehlt}"
+    [[ "${id}" =~ ^[0-9a-fA-F-]{36}$ ]] || { echo "ungueltige Asset-ID" >&2; exit 2; }
+    umask 077
+    mkdir -p "$(dirname "${out}")"
+    tmp="${out}.part"
+    api_header | "${IMMICH_CURL}" -fsS --connect-timeout 3 -m 600 --max-filesize 500000000 \
+        -H @- -o "${tmp}" "${IMMICH_URL}/api/assets/${id}/video/playback"
+    mv -f "${tmp}" "${out}"
+    ;;
+
   *)
-    echo "Aufruf: qs-immich memories <YYYY-MM-DD> [Jahre] | qs-immich fetch <asset-id> <datei>" >&2
+    echo "Aufruf: qs-immich memories <YYYY-MM-DD> [Jahre] | qs-immich fetch|video <asset-id> <datei>" >&2
     exit 2
     ;;
 esac

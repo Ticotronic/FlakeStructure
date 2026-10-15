@@ -69,6 +69,7 @@ Scope {
         if (listProc.running)
             return;
         failedIds = {};
+        videoFailed = {};
         listProc.buf = "";
         listProc.command = ["qs-immich", "memories",
                             Qt.formatDate(new Date(), "yyyy-MM-dd"), String(maxYears)];
@@ -187,12 +188,86 @@ Scope {
         }
     }
 
+    // ---- Videos (nur das gerade angezeigte, komplett in eine Datei) ----
+    property var videoHave: ({})
+    property var videoFailed: ({})
+
+    // 0 = laedt noch, 1 = fertig, 2 = fehlgeschlagen
+    function videoState(id) {
+        var t = tick;
+        if (videoHave[id])
+            return 1;
+        if (videoFailed[id])
+            return 2;
+        return 0;
+    }
+
+    function videoUrl(id) {
+        var t = tick;
+        return videoHave[id] ? "file://" + cacheDir + "/" + id + ".mp4" : "";
+    }
+
+    function ensureVideo(id) {
+        if (!id || videoHave[id] || videoFailed[id])
+            return;
+        if (videoProc.running) {
+            if (videoProc.current === id)
+                return;
+            // anderes Video laeuft noch: abbrechen, danach das gewuenschte starten
+            videoProc.pending = id;
+            videoProc.current = "";
+            videoProc.running = false;
+            return;
+        }
+        startVideo(id);
+    }
+
+    function startVideo(id) {
+        videoProc.pending = "";
+        videoProc.current = id;
+        videoProc.command = ["qs-immich", "video", id, cacheDir + "/" + id + ".mp4"];
+        videoProc.running = true;
+    }
+
+    function cancelVideo() {
+        videoProc.pending = "";
+        if (videoProc.running) {
+            videoProc.current = "";
+            videoProc.running = false;
+        }
+    }
+
+    Process {
+        id: videoProc
+        property string current: ""
+        property string pending: ""
+        onExited: code => {
+            var id = current;
+            current = "";
+            if (id !== "") {
+                if (code === 0) {
+                    root.videoHave[id] = true;
+                } else {
+                    root.videoFailed[id] = true;
+                    console.warn("Sperrbildschirm-Erinnerungen: Video " + id + " nicht ladbar (Code " + code + ")");
+                }
+                root.tick++;
+            }
+            if (pending !== "")
+                root.startVideo(pending);
+        }
+    }
+
     // aktuelles Bild sofort, Nachbarn danach
     function prefetch() {
         var it = currentItem;
         if (!it)
             return;
         ensure(it.assets[pos].id, true);
+        if (it.assets[pos].type === "VIDEO")
+            ensureVideo(it.assets[pos].id);
+        else
+            cancelVideo();
         if (pos + 1 < it.assets.length)
             ensure(it.assets[pos + 1].id, false);
         if (pos > 0)
@@ -211,6 +286,7 @@ Scope {
     function close() {
         openIndex = -1;
         pos = 0;
+        cancelVideo();
     }
 
     function next() {
@@ -237,8 +313,11 @@ Scope {
         fetchProc.current = "";     // ein noch laufender Abruf wird nicht mehr gezaehlt
         if (fetchProc.running)
             fetchProc.running = false;
+        cancelVideo();
         have = {};
         failedIds = {};
+        videoHave = {};
+        videoFailed = {};
         tick++;
         Quickshell.execDetached(["rm", "-rf", cacheDir]);
     }
