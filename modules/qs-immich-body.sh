@@ -9,6 +9,8 @@
 #       Heimnetzes ohne VPN) - das nutzt der Sperrbildschirm, um die Anzeige zu
 #       verbergen. Exit-Code 3: das aktuelle Netz ist nicht freigegeben (s.u.),
 #       es wurde gar nicht erst eine Verbindung aufgebaut.
+#   qs-immich check
+#       Nur die Netz-Pruefung: Exit-Code 0 = Heimnetz oder VPN, 3 = nicht freigegeben.
 #   qs-immich fetch <asset-id> <zieldatei>
 #       Laedt das Vorschaubild (size=preview) eines Assets in die Zieldatei.
 #       Bei Videos liefert Immich das Vorschaubild des Videos.
@@ -59,11 +61,16 @@ network_ok() {
 
 cmd="${1:-}"
 case "${cmd}" in
-  memories|fetch|video)
-    network_ok || { echo "Netz nicht freigegeben (weder Heim-WLAN noch VPN)" >&2; exit 3; }
+  memories|fetch|video|check)
+    network_ok || { [[ "${cmd}" == check ]] || echo "Netz nicht freigegeben (weder Heim-WLAN noch VPN)" >&2; exit 3; }
     ;;
 esac
 case "${cmd}" in
+  check)
+    # nur die Netz-Pruefung (Exit 0 = Heimnetz/VPN, 3 = nicht freigegeben), fuer den Bar-Button
+    exit 0
+    ;;
+
   memories)
     date="${2:?Datum YYYY-MM-DD fehlt}"
     back="${3:-8}"
@@ -112,7 +119,7 @@ case "${cmd}" in
     ;;
 
   *)
-    echo "Aufruf: qs-immich memories <YYYY-MM-DD> [Jahre] | qs-immich fetch|video <asset-id> <datei>" >&2
+    echo "Aufruf: qs-immich memories <YYYY-MM-DD> [Jahre] | qs-immich check | qs-immich fetch|video <asset-id> <datei>" >&2
     exit 2
     ;;
 esac
