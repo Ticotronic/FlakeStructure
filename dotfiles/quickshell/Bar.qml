@@ -59,6 +59,11 @@ PanelWindow {
             vpnName: "wg0"  // deinen Interface-Namen anpassen
         }
 
+        ImmichButton {
+            Layout.fillHeight: true
+            barWindow: topBar
+        }
+
         // Trennlinie
         Rectangle {
             width: 1; Layout.fillHeight: true

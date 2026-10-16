@@ -52,3 +52,14 @@ layer-rule {
         xray false
     }
 }
+
+// Immich als App-Fenster (Bar-Button ImmichButton -> Skript "immich-open",
+// modules/home.nix): schwebend und gross. Chromium/Brave vergeben bei --app=URL
+// die app-id "brave-<Host>__-Default" (pruefen mit: niri msg windows). Wer Immich
+// lieber gekachelt moechte, kommentiert open-floating und die Groessen aus.
+window-rule {
+    match app-id=r#"^brave-192\.168\.0\.145_"#
+    open-floating true
+    default-column-width { proportion 0.75; }
+    default-window-height { proportion 0.85; }
+}

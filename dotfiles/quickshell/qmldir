@@ -11,6 +11,7 @@ TrayItem 1.0 TrayItem.qml
 TrayArea 1.0 TrayArea.qml
 SessionSlots 1.0 SessionSlots.qml
 WireguardButton 1.0 WireguardButton.qml
+ImmichButton 1.0 ImmichButton.qml
 
 singleton PowerMenu 1.0 PowerMenu.qml
 PowerOverlay 1.0 PowerOverlay.qml

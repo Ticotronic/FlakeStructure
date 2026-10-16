@@ -1,5 +1,11 @@
 { config, pkgs, ... }:
 
+let
+  # Immich-Server (Heimnetz/VPN). Gilt fuer den Bar-Button (immich-open) und die
+  # Sperrbildschirm-Erinnerungen (qs-immich).
+  immichHost = "192.168.0.145";
+  immichUrl = "http://${immichHost}:30041";
+in
 {
   home.username = "roljon";
   home.homeDirectory = "/home/roljon";
@@ -101,9 +107,20 @@
 
     (pkgs.writeShellScriptBin "qs-stats" (builtins.readFile ./qs-stats.sh))
 
+    # Bar-Button ImmichButton.qml: Immich als eigenes Brave-App-Fenster. Ist es schon
+    # offen, wird es nur fokussiert (statt ein zweites Fenster zu oeffnen). Die app-id
+    # "brave-<Host>__-Default" passt zur window-rule in dotfiles/niri/cfg/rules.kdl.
+    (pkgs.writeShellScriptBin "immich-open" ''
+      id="$(niri msg --json windows | ${pkgs.jq}/bin/jq -r '[.[] | select((.app_id // "") | startswith("brave-${immichHost}_"))] | .[0].id // empty')"
+      if [ -n "$id" ]; then
+        exec niri msg action focus-window --id "$id"
+      fi
+      exec brave --app=${immichUrl}
+    '')
+
     # Immich-Erinnerungen "An diesem Tag" fuer den Sperrbildschirm (LockMemories.qml)
     (pkgs.writeShellScriptBin "qs-immich" ''
-      export IMMICH_URL="http://192.168.0.145:30041"
+      export IMMICH_URL="${immichUrl}"
       export IMMICH_KEY_FILE="${config.sops.secrets."immich_api_key".path}"
       export IMMICH_JQ="${pkgs.jq}/bin/jq"
       export IMMICH_CURL="${pkgs.curl}/bin/curl"
