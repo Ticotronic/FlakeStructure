@@ -132,19 +132,29 @@ Item {
     }
 
     // ---- Tooltip (Restlaufzeit / Zeit bis voll / Vollgeladen) ----
+    // Position beim Hovern berechnen (ein Binding auf mapToItem() wird bei
+    // spaeteren Layout-Aenderungen nicht neu ausgewertet)
+    property real tipX: 0
+    property bool tipShown: false
+
     MouseArea {
         id: hover
         anchors.fill: parent
         hoverEnabled: true
         enabled: root.tooltipText !== "" && root.barWindow !== null
+        onEntered: {
+            root.tipX = root.mapToItem(null, 0, 0).x;
+            root.tipShown = true;
+        }
+        onExited: root.tipShown = false
     }
 
     PopupWindow {
-        visible: hover.containsMouse && root.tooltipText !== ""
+        visible: root.tipShown && root.tooltipText !== ""
 
         anchor.window: root.barWindow
         anchor.rect: Qt.rect(
-            root.mapToItem(null, 0, 0).x,
+            root.tipX,
             root.barWindow ? root.barWindow.height : 0,
             root.width,
             0

@@ -46,16 +46,22 @@ Rectangle {
         color: "#cdd6f4"
     }
 
+    // Tooltip-Position beim Hovern berechnen (ein Binding auf mapToItem() wird
+    // bei spaeteren Layout-Aenderungen nicht neu ausgewertet)
+    property real tipX: 0
+    property bool tipShown: false
+
     PopupWindow {
-        visible: mouse.containsMouse && immichButton.barWindow !== null
+        visible: immichButton.tipShown && immichButton.barWindow !== null
 
         anchor.window: immichButton.barWindow
         anchor.rect: Qt.rect(
-            immichButton.mapToItem(null, 0, 0).x,
+            immichButton.tipX,
             immichButton.barWindow ? immichButton.barWindow.height : 0,
             immichButton.width,
             0
         )
+        anchor.edges: Edges.Top
 
         implicitWidth: tipText.implicitWidth + 16
         implicitHeight: tipText.implicitHeight + 12
@@ -85,6 +91,11 @@ Rectangle {
         cursorShape: immichButton.reachable ? Qt.PointingHandCursor : Qt.ArrowCursor
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
+        onEntered: {
+            immichButton.tipX = immichButton.mapToItem(null, 0, 0).x;
+            immichButton.tipShown = true;
+        }
+        onExited: immichButton.tipShown = false
         onClicked: {
             if (immichButton.reachable)
                 Quickshell.execDetached(["immich-open"]);

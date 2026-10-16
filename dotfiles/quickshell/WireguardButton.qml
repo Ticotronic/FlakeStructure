@@ -79,17 +79,24 @@ Rectangle {
         }
     }
 
+    // Tooltip-Position: erst beim Hovern aus der aktuellen Lage berechnen. Ein
+    // Binding auf mapToItem() wird nicht neu ausgewertet, wenn sich das Layout
+    // spaeter verschiebt, und landet dann links am Bildschirmrand.
+    property real tipX: 0
+    property bool tipShown: false
+
     PopupWindow {
         id: vpnTooltip
-        visible: vpnMouseArea.containsMouse
+        visible: vpnButton.tipShown
 
         anchor.window: topBar
         anchor.rect: Qt.rect(
-            vpnButton.mapToItem(null, 0, 0).x,
+            vpnButton.tipX,
             topBar.height,
             vpnButton.width,
             0
         )
+        anchor.edges: Edges.Top
 
         implicitWidth: vpnTooltipText.implicitWidth + 16
         implicitHeight: vpnTooltipText.implicitHeight + 12
@@ -120,6 +127,12 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
+
+        onEntered: {
+            vpnButton.tipX = vpnButton.mapToItem(null, 0, 0).x;
+            vpnButton.tipShown = true;
+        }
+        onExited: vpnButton.tipShown = false
 
         onClicked: {
             if (loading) return;
