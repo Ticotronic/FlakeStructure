@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 
 // Visualisiert den Akkustand als kleines Batterie-Symbol mit Füllbalken.
 // - Füllfarbe hängt vom Prozentwert ab (grün / gelb / rot)
@@ -10,6 +11,36 @@ Item {
 
     property int percent: 100
     property bool charging: false
+
+    // Optional (Bar): "<Zustand>;<Minuten>" aus qs-stats.sh und das Bar-Fenster fuer
+    // den Tooltip. Ohne info (z.B. auf dem Sperrbildschirm) gibt es keinen Tooltip.
+    property string info: ""
+    property var barWindow: null
+
+    // "3 h 12 min" bzw. "23 min"
+    function formatMinutes(m) {
+        var h = Math.floor(m / 60);
+        var r = m % 60;
+        return h > 0 ? h + " h " + r + " min" : r + " min";
+    }
+
+    readonly property string tooltipText: {
+        var p = info.split(";");
+        var mins = p.length > 1 ? parseInt(p[1]) : NaN;
+        switch (p[0]) {
+        case "discharging":
+            return isNaN(mins) ? "Restlaufzeit wird berechnet …"
+                               : "Noch " + formatMinutes(mins) + " Akkulaufzeit";
+        case "charging":
+            return isNaN(mins) ? "Lädt …" : "Noch " + formatMinutes(mins) + " bis voll";
+        case "full":
+            return "Vollgeladen";
+        case "plugged":
+            return "Netzteil angeschlossen, Akku lädt nicht";
+        default:
+            return "";
+        }
+    }
 
     readonly property int clampedPercent: Math.min(100, Math.max(0, percent))
 
@@ -97,6 +128,49 @@ Item {
             text: root.clampedPercent + "%"
 
             Behavior on color { ColorAnimation { duration: 300 } }
+        }
+    }
+
+    // ---- Tooltip (Restlaufzeit / Zeit bis voll / Vollgeladen) ----
+    MouseArea {
+        id: hover
+        anchors.fill: parent
+        hoverEnabled: true
+        enabled: root.tooltipText !== "" && root.barWindow !== null
+    }
+
+    PopupWindow {
+        visible: hover.containsMouse && root.tooltipText !== ""
+
+        anchor.window: root.barWindow
+        anchor.rect: Qt.rect(
+            root.mapToItem(null, 0, 0).x,
+            root.barWindow ? root.barWindow.height : 0,
+            root.width,
+            0
+        )
+        // rechtsbuendig unter dem Symbol, damit der Tooltip am rechten Rand nicht abgeschnitten wird
+        anchor.edges: Edges.Bottom | Edges.Right
+        anchor.gravity: Edges.Bottom | Edges.Left
+
+        implicitWidth: tipText.implicitWidth + 16
+        implicitHeight: tipText.implicitHeight + 12
+        color: "transparent"
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#313244"
+            radius: 4
+            border.color: "#45475a"
+            border.width: 1
+
+            Text {
+                id: tipText
+                anchors.centerIn: parent
+                color: "#cdd6f4"
+                font.pixelSize: 12
+                text: root.tooltipText
+            }
         }
     }
 

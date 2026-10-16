@@ -62,6 +62,8 @@ RowLayout {
     BatteryIndicator {
         percent: isNaN(parseInt(batStatus)) ? 100 : parseInt(batStatus)
         charging: batCharging
+        info: batInfo
+        barWindow: root.barWindow
     }
     RamIndicator { ramText: ramStatus }
 
