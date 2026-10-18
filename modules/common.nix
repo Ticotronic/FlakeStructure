@@ -1,6 +1,8 @@
 { config, pkgs, lib, ... }:
 
 {
+  imports = [ ./greeter.nix ];
+
   # --- Bootloader ---
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -52,10 +54,9 @@
   # PAM-Dienst fuer den eigenen Quickshell-Sperrbildschirm (LockScreen.qml)
   security.pam.services.quickshell-lock = {};
 
-  # gnome-keyring (kommt mit programs.niri) soll beim SDDM-Login automatisch
-  # entsperrt werden. Der Nextcloud-Client legt sein Passwort dort ab; ohne diese
-  # Zeile fragt der Schluesselbund bei jedem Login einzeln nach.
-  security.pam.services.sddm.enableGnomeKeyring = true;
+  # gnome-keyring (kommt mit programs.niri) wird beim Login automatisch entsperrt
+  # (PAM-Dienste greetd/sddm: siehe modules/greeter.nix). Der Nextcloud-Client legt
+  # sein Passwort dort ab; ohne das fragt der Schluesselbund bei jedem Login einzeln.
 
   # Pakete, die du überall brauchst
   environment.systemPackages = with pkgs; [
@@ -189,29 +190,10 @@
   };
 
   # ==========================================
-  # Display Manager: SDDM (x11)
+  # Display Manager: greetd + Quickshell-Greeter (siehe modules/greeter.nix)
+  # SDDM bleibt als Boot-Eintrag "sddm" (specialisation) als Fallback erhalten.
   # ==========================================
   services.xserver.enable = true;
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = false;
-
-    # KWin ist auch für Intel deutlich robuster als Weston
-    #wayland.compositor = "kwin";
-    
-    # Der exakte Name des Theme-Ordners
-    theme = "catppuccin-macchiato";
-    settings = {
-      # Hier kannst du weitere SDDM-Einstellungen anpassen, z.B. die Sprache
-      # language = "de";
-      Theme = {
-        # Hier kannst du die Hintergrundfarbe anpassen, falls das Theme das unterstützt
-        # backgroundColor = "#1e1e2e";
-        CursorTheme = "catppuccin-macchiato-dark-cursors";
-      };
-    };
-  };
-
 
   # Erlaubt die Nutzung der modernen Nix-Befehle und Flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
