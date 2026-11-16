@@ -169,6 +169,19 @@
       "x-systemd.mount-timeout=5s"
     ];
   };
+      fileSystems."/home/roljon/mnt/r_data" = {
+    device = "192.168.0.145:/mnt/tank/r_data";
+    fsType = "nfs";
+    options = [
+      "nfsvers=3" # Alternativ "nfsvers=4" oder "nfsvers=3", je nach TrueNAS-Einstellung    
+      "noauto"
+      "_netdev"
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=600"
+      "x-systemd.device-timeout=5s"
+      "x-systemd.mount-timeout=5s"
+    ];
+  };
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";

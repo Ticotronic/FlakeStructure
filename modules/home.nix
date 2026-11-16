@@ -105,6 +105,29 @@ in
     networkmanager
     curl
 
+    # LaTeX + Editor
+    texstudio
+    # Bewusst NICHT scheme-medium: darin steckt collection-binextra und damit asymptote,
+    # dessen Build (python3.14-pyqt5) in nixpkgs-unstable gerade fehlschlaegt.
+    # Statt der veralteten texlive.combine daher texliveSmall.withPackages.
+    (texliveSmall.withPackages (ps: with ps; [
+      collection-latexextra
+      collection-fontsextra
+      collection-fontsrecommended
+      collection-langgerman
+      collection-mathscience
+      collection-pictures
+      collection-plaingeneric
+      collection-bibtexextra
+      collection-luatex
+      biber
+      latexmk
+      chktex
+      latexindent
+      texdoc
+      dvipng
+    ]))
+
     (pkgs.writeShellScriptBin "qs-stats" (builtins.readFile ./qs-stats.sh))
 
     # Bar-Button ImmichButton.qml: Immich als eigenes Brave-App-Fenster. Ist es schon
