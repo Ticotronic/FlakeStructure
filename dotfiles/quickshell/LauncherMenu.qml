@@ -46,6 +46,7 @@ Singleton {
         "Entwicklung": "image://icon/applications-development",
         "Grafik":      "image://icon/applications-graphics",
         "Multimedia":  "image://icon/applications-multimedia",
+        "Büro":        "image://icon/applications-office",
         "System":      "image://icon/applications-system",
         "Spiele":      "image://icon/applications-games",
         "Sonstiges":   "image://icon/applications-other"
@@ -62,6 +63,8 @@ Singleton {
         "Video":       "Multimedia",
         "AudioVideo":  "Multimedia",
         "Game":        "Spiele",
+        "Office":      "Büro",
+        "Publishing":  "Büro",
         "System":      "System",
         "Settings":    "System",
         "Utility":     "System"
@@ -146,7 +149,7 @@ Singleton {
         id: appLoader
         command: [
             "bash", "-c",
-            "find /usr/share/applications /run/current-system/sw/share/applications ~/.local/share/applications -name '*.desktop' 2>/dev/null | xargs grep -l '^Type=Application' | while read f; do " +
+            "find -L /usr/share/applications /run/current-system/sw/share/applications /etc/profiles/per-user/$USER/share/applications ~/.nix-profile/share/applications ~/.local/state/nix/profiles/profile/share/applications ~/.local/share/applications -name '*.desktop' 2>/dev/null | sort -u | xargs grep -l '^Type=Application' | while read f; do " +
             "name=$(grep '^Name=' \"$f\" | head -1 | cut -d= -f2-); " +
             "exec=$(grep '^Exec=' \"$f\" | head -1 | cut -d= -f2- | sed 's/ %[a-zA-Z]//g'); " +
             "icon=$(grep '^Icon=' \"$f\" | head -1 | cut -d= -f2-); " +
