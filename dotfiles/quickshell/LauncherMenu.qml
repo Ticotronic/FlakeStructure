@@ -132,12 +132,26 @@ Singleton {
         activeScreen = null;
     }
 
+    // Reihenfolge = Prioritaet. Viele Apps listen allgemeine Kategorien wie "Utility"
+    // vor den spezifischen (VS Code: "Utility;TextEditor;Development;IDE;"). Darum
+    // zaehlt nicht die Reihenfolge in der .desktop-Datei, sondern diese Liste.
+    readonly property var categoryPriority: [
+        "Development", "IDE",
+        "Office", "Publishing",
+        "Game",
+        "Graphics", "Photography",
+        "AudioVideo", "Audio", "Video",
+        "Network", "WebBrowser",
+        "Settings", "System",
+        "Utility"
+    ]
+
     function categoryForDesktopCategories(cats) {
         if (!cats) return "Sonstiges";
-        var parts = cats.split(";");
-        for (var i = 0; i < parts.length; i++) {
-            var mapped = desktopToCategory[parts[i].trim()];
-            if (mapped) return mapped;
+        var parts = cats.split(";").map(function(p) { return p.trim(); });
+        for (var i = 0; i < categoryPriority.length; i++) {
+            if (parts.indexOf(categoryPriority[i]) !== -1)
+                return desktopToCategory[categoryPriority[i]];
         }
         return "Sonstiges";
     }
