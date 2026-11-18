@@ -40,7 +40,7 @@ Column {
             cursorShape: Qt.PointingHandCursor
             onClicked: {
                 LauncherMenu.hide();
-                Quickshell.execDetached(appItem.app.exec.split(" "));
+                LauncherMenu.launch(appItem.app);
             }
         }
     }

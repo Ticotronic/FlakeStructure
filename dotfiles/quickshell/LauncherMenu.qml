@@ -119,12 +119,22 @@ Singleton {
             currentAppIndex = 0;
     }
 
+    // Terminal-Programme (Terminal=true in der .desktop-Datei, z. B. yazi) brauchen ein
+    // Terminalfenster, sonst starten sie ohne sichtbares Fenster und "nichts passiert".
+    readonly property var terminalCommand: ["alacritty", "-e"]
+
+    function launch(app) {
+        var cmd = app.exec.split(" ");
+        if (app.terminal) cmd = terminalCommand.concat(cmd);
+        Quickshell.execDetached(cmd);
+    }
+
     function activateCurrent() {
         if (filteredApps.length === 0) return;
         var app = filteredApps[currentAppIndex];
         if (!app) return;
         hide();
-        Quickshell.execDetached(app.exec.split(" "));
+        launch(app);
     }
 
     function hide() {
@@ -168,10 +178,11 @@ Singleton {
             "exec=$(grep '^Exec=' \"$f\" | head -1 | cut -d= -f2- | sed 's/ %[a-zA-Z]//g'); " +
             "icon=$(grep '^Icon=' \"$f\" | head -1 | cut -d= -f2-); " +
             "cats=$(grep '^Categories=' \"$f\" | head -1 | cut -d= -f2-); " +
+            "term=$(grep '^Terminal=' \"$f\" | head -1 | cut -d= -f2-); " +
             "nodisplay=$(grep '^NoDisplay=' \"$f\" | head -1 | cut -d= -f2-); " +
             "[ \"$nodisplay\" = 'true' ] && continue; " +
             "[ -z \"$name\" ] && continue; " +
-            "echo \"$name|$exec|$icon|$cats\"; " +
+            "echo \"$name|$exec|$icon|$cats|$term\"; " +
             "done | sort -u"
         ]
         running: true
@@ -184,7 +195,8 @@ Singleton {
                     name:     parts[0],
                     exec:     parts[1],
                     icon:     parts[2] || "application-x-executable",
-                    category: launcherMenu.categoryForDesktopCategories(parts[3] || "")
+                    category: launcherMenu.categoryForDesktopCategories(parts[3] || ""),
+                    terminal: (parts[4] || "").trim() === "true"
                 });
                 launcherMenu.appList = apps;
             }
